@@ -6,7 +6,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.HelpOutline
 import androidx.compose.material.icons.automirrored.outlined.ViewList
 import androidx.compose.material.icons.outlined.Analytics
+import androidx.compose.material.icons.outlined.BarChart
 import androidx.compose.material.icons.outlined.Book
+import androidx.compose.material.icons.outlined.Cloud
 import androidx.compose.material.icons.outlined.BugReport
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.GridView
@@ -148,6 +150,42 @@ private fun Settings(
 
       item {
         AutoSleepTimerCard(viewState.autoSleepTimer, listener)
+      }
+
+      item {
+        ListItem(
+          modifier = Modifier.clickable { listener.openListeningStats() },
+          leadingContent = {
+            Icon(
+              imageVector = Icons.Outlined.BarChart,
+              contentDescription = "Listening Stats",
+            )
+          },
+          headlineContent = {
+            Text("Listening Stats")
+          },
+          supportingContent = {
+            Text("View your listening history and statistics")
+          },
+        )
+      }
+
+      item {
+        ListItem(
+          modifier = Modifier.clickable { listener.openSftpSettings() },
+          leadingContent = {
+            Icon(
+              imageVector = Icons.Outlined.Cloud,
+              contentDescription = "Remote library (SFTP)",
+            )
+          },
+          headlineContent = {
+            Text("Remote library (SFTP)")
+          },
+          supportingContent = {
+            Text("Configure NAS/SFTP connection for remote audiobooks")
+          },
+        )
       }
 
       item {

@@ -106,6 +106,10 @@ fun BookOverviewScreen(modifier: Modifier = Modifier) {
     onSearchQueryChange = bookOverviewViewModel::onSearchQueryChange,
     onSearchBookClick = bookOverviewViewModel::onSearchBookClick,
     onPermissionBugCardClick = bookOverviewViewModel::onPermissionBugCardClick,
+    onRemoteSync = bookOverviewViewModel::onRemoteSync,
+    onRemoteBookDownload = bookOverviewViewModel::onRemoteBookDownload,
+    onRemoteBookRemove = bookOverviewViewModel::onRemoteBookRemove,
+    onRemoteBookPlay = bookOverviewViewModel::onRemoteBookPlay,
   )
   val deleteBookViewState = deleteBookViewModel.state.value
   if (deleteBookViewState != null) {
@@ -165,6 +169,10 @@ internal fun BookOverview(
   onSearchQueryChange: (String) -> Unit,
   onSearchBookClick: (BookId) -> Unit,
   onPermissionBugCardClick: () -> Unit,
+  onRemoteSync: () -> Unit = {},
+  onRemoteBookDownload: (voice.core.remote.RemoteBook) -> Unit = {},
+  onRemoteBookRemove: (voice.core.remote.RemoteBook) -> Unit = {},
+  onRemoteBookPlay: (BookId) -> Unit = {},
   modifier: Modifier = Modifier,
 ) {
   val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
@@ -206,6 +214,13 @@ internal fun BookOverview(
             onBookLongClick = onBookLongClick,
             showPermissionBugCard = viewState.showStoragePermissionBugCard,
             onPermissionBugCardClick = onPermissionBugCardClick,
+            remoteBooks = viewState.remoteBooks,
+            remoteSyncInProgress = viewState.remoteSyncInProgress,
+            remoteSyncError = viewState.remoteSyncError,
+            onRemoteSync = onRemoteSync,
+            onRemoteDownload = onRemoteBookDownload,
+            onRemoteRemove = onRemoteBookRemove,
+            onRemotePlay = onRemoteBookPlay,
           )
         }
         BookOverviewLayoutMode.Grid -> {
@@ -215,6 +230,13 @@ internal fun BookOverview(
             onBookLongClick = onBookLongClick,
             showPermissionBugCard = viewState.showStoragePermissionBugCard,
             onPermissionBugCardClick = onPermissionBugCardClick,
+            remoteBooks = viewState.remoteBooks,
+            remoteSyncInProgress = viewState.remoteSyncInProgress,
+            remoteSyncError = viewState.remoteSyncError,
+            onRemoteSync = onRemoteSync,
+            onRemoteDownload = onRemoteBookDownload,
+            onRemoteRemove = onRemoteBookRemove,
+            onRemotePlay = onRemoteBookPlay,
           )
         }
       }
@@ -241,6 +263,10 @@ fun BookOverviewPreview(
       onSearchQueryChange = {},
       onSearchBookClick = {},
       onPermissionBugCardClick = {},
+      onRemoteSync = {},
+      onRemoteBookDownload = {},
+      onRemoteBookRemove = {},
+      onRemoteBookPlay = {},
     )
   }
 }
@@ -277,6 +303,9 @@ internal class BookOverviewPreviewParameterProvider : PreviewParameterProvider<B
       ),
       showStoragePermissionBugCard = false,
       showFolderPickerIcon = true,
+      remoteBooks = emptyList(),
+      remoteSyncInProgress = false,
+      remoteSyncError = null,
     ),
   )
 }

@@ -17,6 +17,7 @@ import voice.core.data.repo.BookRepository
 import voice.core.documentfile.CachedDocumentFile
 import voice.core.documentfile.CachedDocumentFileFactory
 import voice.core.logging.api.Logger
+import voice.core.remote.RemoteDownloadsRootProvider
 import kotlin.time.measureTime
 
 @SingleIn(AppScope::class)
@@ -28,6 +29,7 @@ internal constructor(
   private val coverScanner: CoverScanner,
   private val bookRepo: BookRepository,
   private val documentFileFactory: CachedDocumentFileFactory,
+  private val remoteDownloadsRootProvider: RemoteDownloadsRootProvider,
 ) {
 
   private val _scannerActive = MutableStateFlow(false)
@@ -47,11 +49,19 @@ internal constructor(
       oldJob?.cancelAndJoin()
 
       measureTime {
-        val folders: Map<FolderType, List<CachedDocumentFile>> = audiobookFolders.all()
-          .first()
+        val allFolders = audiobookFolders.all().first()
+        val folders: Map<FolderType, List<CachedDocumentFile>> = allFolders
           .mapValues { (_, documentFilesWithUri) ->
             documentFilesWithUri.map {
               documentFileFactory.create(it.documentFile.uri)
+            }
+          }
+          .toMutableMap()
+          .apply {
+            remoteDownloadsRootProvider.get()?.let { downloadsRoot ->
+              merge(FolderType.Root, listOf(downloadsRoot)) { existing, extra ->
+                existing + extra
+              }
             }
           }
         scanner.scan(folders)

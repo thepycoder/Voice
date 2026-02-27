@@ -12,7 +12,10 @@ import kotlinx.serialization.builtins.nullable
 import kotlinx.serialization.builtins.serializer
 import voice.core.data.BookId
 import voice.core.data.GridMode
+import voice.core.data.ListeningStats
 import voice.core.data.sleeptimer.SleepTimerPreference
+import voice.core.remote.RemoteCatalogStorage
+import voice.core.remote.SftpSettings
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 
@@ -165,5 +168,38 @@ public interface StoreModule {
   @DeveloperMenuUnlockedStore
   private fun developerMenuUnlocked(factory: VoiceDataStoreFactory): DataStore<Boolean> {
     return factory.boolean("developerMenuUnlocked", defaultValue = false)
+  }
+
+  @Provides
+  @SingleIn(AppScope::class)
+  @ListeningStatsStore
+  private fun listeningStats(factory: VoiceDataStoreFactory): DataStore<ListeningStats> {
+    return factory.create(
+      serializer = ListeningStats.serializer(),
+      fileName = "listeningStats",
+      defaultValue = ListeningStats(),
+    )
+  }
+
+  @Provides
+  @SingleIn(AppScope::class)
+  @SftpSettingsStore
+  private fun sftpSettings(factory: VoiceDataStoreFactory): DataStore<SftpSettings> {
+    return factory.create(
+      serializer = SftpSettings.serializer(),
+      fileName = "sftpSettings",
+      defaultValue = SftpSettings(),
+    )
+  }
+
+  @Provides
+  @SingleIn(AppScope::class)
+  @RemoteCatalogStore
+  private fun remoteCatalog(factory: VoiceDataStoreFactory): DataStore<RemoteCatalogStorage> {
+    return factory.create(
+      serializer = RemoteCatalogStorage.serializer(),
+      fileName = "remoteCatalog",
+      defaultValue = RemoteCatalogStorage(),
+    )
   }
 }

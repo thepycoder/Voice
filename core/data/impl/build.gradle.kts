@@ -38,6 +38,8 @@ dependencies {
   implementation(libs.serialization.json)
   implementation(libs.coroutines.core)
   implementation(projects.core.analytics.api)
+  implementation(projects.core.remote)
+  implementation(projects.core.scanner)
 
   api(libs.room.runtime)
   ksp(libs.room.compiler)

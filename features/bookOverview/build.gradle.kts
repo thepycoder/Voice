@@ -12,6 +12,7 @@ dependencies {
   implementation(projects.core.strings)
   implementation(projects.core.playback)
   implementation(projects.core.data.api)
+  implementation(projects.core.remote)
   implementation(projects.core.scanner)
   implementation(projects.core.featureflag)
 

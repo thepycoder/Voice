@@ -23,6 +23,7 @@ import voice.core.playback.player.OnlyAudioRenderersFactory
 import voice.core.playback.player.VoicePlayer
 import voice.core.playback.player.onAudioSessionIdChanged
 import voice.core.playback.playstate.PlayStateDelegatingListener
+import voice.core.playback.playstate.PlaybackStatsTracker
 import voice.core.playback.playstate.PositionUpdater
 import voice.core.playback.session.LibrarySessionCallback
 import voice.core.playback.session.PlaybackService
@@ -48,6 +49,7 @@ interface PlaybackModule {
     mediaSourceFactory: MediaSource.Factory,
     playStateDelegatingListener: PlayStateDelegatingListener,
     positionUpdater: PositionUpdater,
+    playbackStatsTracker: PlaybackStatsTracker,
     volumeGain: VolumeGain,
     durationInconsistenciesUpdater: DurationInconsistenciesUpdater,
   ): Player {
@@ -64,6 +66,7 @@ interface PlaybackModule {
       .also { player ->
         playStateDelegatingListener.attachTo(player)
         positionUpdater.attachTo(player)
+        playbackStatsTracker.attachTo(player)
         durationInconsistenciesUpdater.attachTo(player)
         player.onAudioSessionIdChanged {
           volumeGain.audioSessionId = it

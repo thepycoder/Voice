@@ -40,6 +40,7 @@ import kotlinx.collections.immutable.ImmutableMap
 import voice.core.data.BookId
 import voice.features.bookOverview.overview.BookOverviewCategory
 import voice.features.bookOverview.overview.BookOverviewItemViewState
+import voice.features.bookOverview.overview.RemoteBookItemViewState
 import kotlin.math.roundToInt
 import voice.core.ui.R as UiR
 
@@ -50,6 +51,13 @@ internal fun GridBooks(
   onBookLongClick: (BookId) -> Unit,
   showPermissionBugCard: Boolean,
   onPermissionBugCardClick: () -> Unit,
+  remoteBooks: List<RemoteBookItemViewState> = emptyList(),
+  remoteSyncInProgress: Boolean = false,
+  remoteSyncError: String? = null,
+  onRemoteSync: () -> Unit = {},
+  onRemoteDownload: (voice.core.remote.RemoteBook) -> Unit = {},
+  onRemoteRemove: (voice.core.remote.RemoteBook) -> Unit = {},
+  onRemotePlay: (BookId) -> Unit = {},
 ) {
   val cellCount = gridColumnCount()
   LazyVerticalGrid(
@@ -58,6 +66,17 @@ internal fun GridBooks(
     horizontalArrangement = Arrangement.spacedBy(8.dp),
     contentPadding = PaddingValues(start = 8.dp, end = 8.dp, top = 24.dp, bottom = 4.dp),
   ) {
+    item(span = { GridItemSpan(maxLineSpan) }, key = "remote_section", contentType = "remote") {
+      RemoteLibrarySection(
+        remoteBooks = remoteBooks,
+        syncInProgress = remoteSyncInProgress,
+        syncError = remoteSyncError,
+        onSync = onRemoteSync,
+        onDownload = onRemoteDownload,
+        onRemove = onRemoteRemove,
+        onPlay = onRemotePlay,
+      )
+    }
     if (showPermissionBugCard) {
       item(
         span = { GridItemSpan(maxLineSpan) },

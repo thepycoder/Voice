@@ -37,3 +37,12 @@ public annotation class AnalyticsConsentStore
 
 @Qualifier
 public annotation class DeveloperMenuUnlockedStore
+
+@Qualifier
+public annotation class ListeningStatsStore
+
+@Qualifier
+public annotation class SftpSettingsStore
+
+@Qualifier
+public annotation class RemoteCatalogStore

@@ -37,6 +37,7 @@ import voice.core.data.BookId
 import voice.core.ui.ImmutableFile
 import voice.features.bookOverview.overview.BookOverviewCategory
 import voice.features.bookOverview.overview.BookOverviewItemViewState
+import voice.features.bookOverview.overview.RemoteBookItemViewState
 import voice.core.ui.R as UiR
 
 @Composable
@@ -46,11 +47,29 @@ internal fun ListBooks(
   onBookLongClick: (BookId) -> Unit,
   showPermissionBugCard: Boolean,
   onPermissionBugCardClick: () -> Unit,
+  remoteBooks: List<RemoteBookItemViewState> = emptyList(),
+  remoteSyncInProgress: Boolean = false,
+  remoteSyncError: String? = null,
+  onRemoteSync: () -> Unit = {},
+  onRemoteDownload: (voice.core.remote.RemoteBook) -> Unit = {},
+  onRemoteRemove: (voice.core.remote.RemoteBook) -> Unit = {},
+  onRemotePlay: (BookId) -> Unit = {},
 ) {
   LazyColumn(
     verticalArrangement = Arrangement.spacedBy(8.dp),
     contentPadding = PaddingValues(top = 24.dp, start = 8.dp, end = 8.dp, bottom = 16.dp),
   ) {
+    item(key = "remote_section", contentType = "remote") {
+      RemoteLibrarySection(
+          remoteBooks = remoteBooks,
+          syncInProgress = remoteSyncInProgress,
+          syncError = remoteSyncError,
+          onSync = onRemoteSync,
+          onDownload = onRemoteDownload,
+          onRemove = onRemoteRemove,
+          onPlay = onRemotePlay,
+        )
+    }
     if (showPermissionBugCard) {
       item {
         PermissionBugCard(onPermissionBugCardClick)

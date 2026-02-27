@@ -30,6 +30,11 @@ import voice.core.featureflag.FolderPickerInSettingsFeatureFlagQualifier
 import voice.core.playback.PlayerController
 import voice.core.playback.playstate.PlayStateManager
 import voice.core.scanner.DeviceHasStoragePermissionBug
+import voice.core.remote.DownloadManager
+import voice.core.remote.DownloadState
+import voice.core.remote.LibrarySyncManager
+import voice.core.remote.RemoteBook
+import voice.core.remote.RemoteCatalogRepo
 import voice.core.scanner.MediaScanTrigger
 import voice.core.search.BookSearch
 import voice.core.ui.GridCount
@@ -57,11 +62,16 @@ class BookOverviewViewModel(
   private val deviceHasStoragePermissionBug: DeviceHasStoragePermissionBug,
   @FolderPickerInSettingsFeatureFlagQualifier
   private val folderPickerInSettingsFeatureFlag: FeatureFlag<Boolean>,
+  private val remoteCatalogRepo: RemoteCatalogRepo,
+  private val librarySyncManager: LibrarySyncManager,
+  private val downloadManager: DownloadManager,
 ) {
 
   private val scope = MainScope()
   private var searchActive by mutableStateOf(false)
   private var query by mutableStateOf("")
+  private var remoteSyncInProgress by mutableStateOf(false)
+  private var remoteSyncError by mutableStateOf<String?>(null)
 
   fun attach() {
     mediaScanner.scan()
@@ -82,8 +92,28 @@ class BookOverviewViewModel(
     val gridMode = remember { gridModeStore.data }
       .collectAsState(initial = null).value
       ?: return BookOverviewViewState.Loading
+    val remoteBooksList = remember { remoteCatalogRepo.flow() }
+      .collectAsState(initial = emptyList()).value
+    val contentList = remember { contentRepo.flow() }
+      .collectAsState(initial = emptyList()).value
+    val downloadState = remember { downloadManager.downloadState }
+      .collectAsState(initial = DownloadState.Idle).value
 
     val noBooks = !scannerActive && books.isEmpty()
+    val remoteBookItems = remoteBooksList.map { remoteBook ->
+      val isDownloaded = contentList.any { it.remoteBookId == remoteBook.id }
+      val localBookId = contentList.find { it.remoteBookId == remoteBook.id }?.id
+      val progress = when (downloadState) {
+        is DownloadState.Downloading -> if (downloadState.remoteBookId == remoteBook.id) downloadState.progress else null
+        else -> null
+      }
+      RemoteBookItemViewState(
+        remoteBook = remoteBook,
+        isDownloaded = isDownloaded,
+        localBookId = localBookId,
+        downloadProgress = progress,
+      )
+    }
 
     val layoutMode = when (gridMode) {
       GridMode.LIST -> BookOverviewLayoutMode.List
@@ -128,7 +158,42 @@ class BookOverviewViewModel(
       searchViewState = bookSearchViewState,
       showStoragePermissionBugCard = hasStoragePermissionBug,
       showFolderPickerIcon = !folderPickerInSettingsFeatureFlag.get(),
+      remoteBooks = remoteBookItems,
+      remoteSyncInProgress = remoteSyncInProgress,
+      remoteSyncError = remoteSyncError,
     )
+  }
+
+  fun onRemoteSync() {
+    remoteSyncError = null
+    remoteSyncInProgress = true
+    scope.launch {
+      val result = librarySyncManager.sync {}
+      remoteSyncInProgress = false
+      if (result is LibrarySyncManager.SyncResult.Error) {
+        remoteSyncError = result.message
+      }
+    }
+  }
+
+  fun onRemoteBookDownload(book: RemoteBook) {
+    scope.launch {
+      downloadManager.downloadBook(book).onFailure {
+        remoteSyncError = it.message
+      }
+    }
+  }
+
+  fun onRemoteBookRemove(book: RemoteBook) {
+    scope.launch {
+      downloadManager.removeBook(book).onFailure {
+        remoteSyncError = it.message
+      }
+    }
+  }
+
+  fun onRemoteBookPlay(localBookId: BookId) {
+    navigator.goTo(Destination.Playback(localBookId))
   }
 
   @Composable

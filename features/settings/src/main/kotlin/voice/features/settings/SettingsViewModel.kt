@@ -216,6 +216,14 @@ class SettingsViewModel(
     }
   }
 
+  override fun openListeningStats() {
+    navigator.goTo(Destination.ListeningStats)
+  }
+
+  override fun openSftpSettings() {
+    navigator.goTo(Destination.SftpSettings)
+  }
+
   override fun openDeveloperMenu() {
     navigator.goTo(Destination.DeveloperSettings)
   }
