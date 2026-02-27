@@ -46,7 +46,7 @@ android {
   }
 
   defaultConfig {
-    applicationId = "de.ph1b.audiobook"
+    applicationId = "de.ph1b.audiobook.repo"
     versionName = project.findProperty("voice.versionName")?.toString() ?: "1.0.0"
     versionCode = project.findProperty("voice.versionCode")?.toString()?.toInt() ?: 1
 
