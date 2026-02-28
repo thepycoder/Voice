@@ -5,6 +5,7 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.os.Build
 import androidx.core.app.NotificationCompat
+import androidx.core.net.toUri
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
 import dev.zacsweers.metro.Inject
@@ -110,7 +111,8 @@ public class DownloadManagerImpl(
     val downloadsPath = File(application.filesDir, RemotePaths.DOWNLOADS_DIR).absolutePath
     val allContent = bookContentRepo.all()
     val match = allContent.find { content ->
-      content.id.value.contains(remoteBookId) && content.id.value.contains(downloadsPath)
+      val path = content.id.toUri().path ?: return@find false
+      path.contains(remoteBookId) && path.startsWith(downloadsPath)
     }
     if (match != null) {
       val updated = match.copy(remoteBookId = remoteBookId)

@@ -52,9 +52,14 @@ class BottomSheetViewModel(
       val contentList = contentRepo.flow().first()
       val content = contentList.find { it.id == bookId }
       val downloadsPath = File(application.filesDir, RemotePaths.DOWNLOADS_DIR).absolutePath
-      val remoteId = content?.remoteBookId ?: if (content?.id?.value?.contains(downloadsPath) == true) {
-        content.id.value.substringAfter("$downloadsPath/").substringBefore("/")
+
+      val uri = content?.id?.toUri()
+      val path = uri?.path
+      val remoteIdFromPath = if (path != null && path.startsWith(downloadsPath)) {
+        path.substringAfter("$downloadsPath/").substringBefore("/")
       } else null
+
+      val remoteId = content?.remoteBookId ?: remoteIdFromPath
 
       if (remoteId != null) {
         val books = remoteCatalogRepo.flow().first()
@@ -77,7 +82,9 @@ class BottomSheetViewModel(
     val contentList = contentRepo.flow().first()
     val downloadsPath = File(application.filesDir, RemotePaths.DOWNLOADS_DIR).absolutePath
     val isDownloaded = contentList.any { content ->
-      content.remoteBookId == book.id || (content.id.value.contains(downloadsPath) && content.id.value.contains(book.id))
+      if (content.remoteBookId == book.id) return@any true
+      val path = content.id.toUri().path ?: return@any false
+      path.startsWith(downloadsPath) && path.contains("/${book.id}/")
     }
 
     val items = if (isDownloaded) {

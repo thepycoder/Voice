@@ -294,8 +294,10 @@ class BookOverviewViewModel(
 
   private fun getEffectiveRemoteId(content: BookContent, downloadsPath: String): String? {
     content.remoteBookId?.let { return it }
-    return if (content.id.value.contains(downloadsPath)) {
-      content.id.value.substringAfter("$downloadsPath/").substringBefore("/")
+    val uri = content.id.toUri()
+    val path = uri.path ?: return null
+    return if (path.startsWith(downloadsPath)) {
+      path.substringAfter("$downloadsPath/").substringBefore("/")
     } else null
   }
 }

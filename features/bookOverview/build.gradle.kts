@@ -22,4 +22,5 @@ dependencies {
   implementation(libs.datastore)
 
   testImplementation(libs.bundles.testing.jvm)
+  testImplementation(libs.molecule)
 }
