@@ -3,13 +3,18 @@ package voice.core.remote
 import android.app.Application
 import dev.zacsweers.metro.Inject
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
+import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.SingleIn
 import voice.core.logging.api.Logger
 import java.io.File
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
+@SingleIn(AppScope::class)
 @Inject
 public class LibrarySyncManager(
   private val application: Application,
@@ -21,28 +26,36 @@ public class LibrarySyncManager(
   private val mp4MetadataReader = Mp4MetadataReader()
   private val dateFormatter = DateTimeFormatter.ISO_LOCAL_DATE_TIME
 
+  private val _syncState = MutableStateFlow<SyncState>(SyncState.Idle)
+  public val syncState: StateFlow<SyncState> = _syncState
+
   public suspend fun sync(onProgress: (String) -> Unit = {}): SyncResult = withContext(Dispatchers.IO) {
     try {
       val settings = settingsProvider.get()
       if (settings.remotePath.isBlank()) {
+        _syncState.value = SyncState.Error("Remote path not configured")
         return@withContext SyncResult.Error("Remote path not configured")
       }
 
-      onProgress("Connecting…")
+      val emitProgress: (String) -> Unit = { msg ->
+        _syncState.value = SyncState.Syncing(msg)
+        onProgress(msg)
+      }
+      emitProgress("Connecting…")
 
       val remoteFolders = try {
         sftpManager.listDirectories(settings.remotePath)
       } catch (e: Exception) {
         try {
           val rootFolders = sftpManager.listDirectories("/")
-          return@withContext SyncResult.Error(
-            "Path '${settings.remotePath}' not found. Root folders: ${rootFolders.joinToString(", ")}",
-          )
+          val msg = "Path '${settings.remotePath}' not found. Root folders: ${rootFolders.joinToString(", ")}"
+          _syncState.value = SyncState.Error(msg)
+          return@withContext SyncResult.Error(msg)
         } catch (rootError: Exception) {
           Logger.e(e, "SFTP list directories failed")
-          return@withContext SyncResult.Error(
-            "Failed to access '${settings.remotePath}': ${e.message}",
-          )
+          val msg = "Failed to access '${settings.remotePath}': ${e.message}"
+          _syncState.value = SyncState.Error(msg)
+          return@withContext SyncResult.Error(msg)
         }
       }
 
@@ -51,7 +64,7 @@ public class LibrarySyncManager(
       val coversDir = File(application.filesDir, RemotePaths.COVERS_DIR).apply { mkdirs() }
 
       for (folder in remoteFolders) {
-        onProgress("Processing: $folder")
+        emitProgress("Processing: $folder")
 
         if (currentBooks.containsKey(folder)) continue
 
@@ -66,7 +79,7 @@ public class LibrarySyncManager(
           val pdfFile = files.find { it.name.endsWith(".pdf", ignoreCase = true) }
 
           if (m4bFile == null) {
-            onProgress("Skipping $folder: no m4b")
+            emitProgress("Skipping $folder: no m4b")
             continue
           }
 
@@ -75,7 +88,7 @@ public class LibrarySyncManager(
             sftpManager.downloadFile("$remotePath/${coverFile.name}", localCoverFile)
           }
 
-          onProgress("Extracting metadata: $folder")
+          emitProgress("Extracting metadata: $folder")
           val metadata = try {
             val m4bData = sftpManager.partialRead(
               "$remotePath/${m4bFile.name}",
@@ -103,17 +116,23 @@ public class LibrarySyncManager(
           newBooksCount++
         } catch (e: Exception) {
           Logger.e(e, "Error processing folder $folder")
-          onProgress("Error: $folder – ${e.message}")
+          emitProgress("Error: $folder – ${e.message}")
         }
       }
 
       catalogRepo.setBooks(currentBooks.values.toList())
       Logger.i("Remote sync done: $newBooksCount new books")
+      _syncState.value = SyncState.Success(newBooksCount)
       SyncResult.Success(newBooksCount)
     } catch (e: Exception) {
       Logger.e(e, "Sync failed")
+      _syncState.value = SyncState.Error(e.message ?: "Unknown error")
       SyncResult.Error(e.message ?: "Unknown error")
     }
+  }
+
+  public fun clearSyncState() {
+    _syncState.value = SyncState.Idle
   }
 
   public suspend fun clearAll(): Unit = withContext(Dispatchers.IO) {

@@ -3,12 +3,19 @@ package voice.features.bookOverview.views
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -38,9 +45,11 @@ import voice.core.ui.VoiceTheme
 import voice.core.ui.rememberScoped
 import voice.features.bookOverview.bottomSheet.BottomSheetContent
 import voice.features.bookOverview.bottomSheet.BottomSheetItem
+import voice.features.bookOverview.bottomSheet.EditBookBottomSheetState
 import voice.features.bookOverview.deleteBook.DeleteBookDialog
 import voice.features.bookOverview.di.BookOverviewGraph
 import voice.features.bookOverview.editTitle.EditBookTitleDialog
+import voice.core.remote.SyncState
 import voice.features.bookOverview.overview.BookOverviewCategory
 import voice.features.bookOverview.overview.BookOverviewItemViewState
 import voice.features.bookOverview.overview.BookOverviewLayoutMode
@@ -91,14 +100,35 @@ fun BookOverviewScreen(modifier: Modifier = Modifier) {
     },
   )
 
+  var bottomSheetBookId by remember { mutableStateOf<BookId?>(null) }
+  var bottomSheetState by remember { mutableStateOf(EditBookBottomSheetState(emptyList())) }
   var showBottomSheet by remember { mutableStateOf(false) }
+  val snackbarHostState = remember { androidx.compose.material3.SnackbarHostState() }
+  LaunchedEffect(viewState.syncState) {
+    when (val state = viewState.syncState) {
+      is SyncState.Success -> {
+        val message = if (state.newBooks == 0) "Sync complete" else "Synced ${state.newBooks} new book(s)"
+        snackbarHostState.showSnackbar(message)
+        bookOverviewViewModel.onSyncStateDismissed()
+      }
+      is SyncState.Error -> {
+        snackbarHostState.showSnackbar(state.message)
+        bookOverviewViewModel.onSyncStateDismissed()
+      }
+      else -> {}
+    }
+  }
   BookOverview(
     viewState = viewState,
+    snackbarHostState = snackbarHostState,
     onSettingsClick = bookOverviewViewModel::onSettingsClick,
     onBookClick = bookOverviewViewModel::onBookClick,
     onBookLongClick = { bookId ->
-      bottomSheetViewModel.bookSelected(bookId)
-      showBottomSheet = true
+      scope.launch {
+        bottomSheetBookId = bookId
+        bottomSheetState = bottomSheetViewModel.prepareBookSelection(bookId)
+        showBottomSheet = true
+      }
     },
     onBookFolderClick = bookOverviewViewModel::onBookFolderClick,
     onPlayButtonClick = bookOverviewViewModel::playPause,
@@ -133,15 +163,18 @@ fun BookOverviewScreen(modifier: Modifier = Modifier) {
       sheetState = sheetState,
       content = {
         BottomSheetContent(
-          state = bottomSheetViewModel.state.value,
+          state = bottomSheetState,
           onItemClick = { item ->
             if (item == BottomSheetItem.FileCover) {
               getContentLauncher.launch("image/*")
             }
-            scope.launch {
-              sheetState.hide()
-              bottomSheetViewModel.onItemClick(item)
-              showBottomSheet = false
+            val bookId = bottomSheetBookId
+            if (bookId != null) {
+              scope.launch {
+                sheetState.hide()
+                bottomSheetViewModel.onItemClick(bookId, item)
+                showBottomSheet = false
+              }
             }
           },
         )
@@ -156,6 +189,7 @@ fun BookOverviewScreen(modifier: Modifier = Modifier) {
 @Composable
 internal fun BookOverview(
   viewState: BookOverviewViewState,
+  snackbarHostState: SnackbarHostState,
   onSettingsClick: () -> Unit,
   onBookClick: (BookId) -> Unit,
   onBookLongClick: (BookId) -> Unit,
@@ -170,6 +204,7 @@ internal fun BookOverview(
   val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
   Scaffold(
     modifier = modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+    snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
     topBar = {
       BookOverviewTopBar(
         viewState = viewState,
@@ -193,11 +228,29 @@ internal fun BookOverview(
     },
     contentWindowInsets = WindowInsets(0, 0, 0, 0),
   ) { contentPadding ->
-    Box(
+    Column(
       Modifier
         .padding(contentPadding)
         .consumeWindowInsets(contentPadding),
     ) {
+      when (val sync = viewState.syncState) {
+        is SyncState.Syncing -> {
+          Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+            Text(
+              text = sync.message,
+              style = MaterialTheme.typography.labelSmall,
+              color = MaterialTheme.colorScheme.primary,
+              modifier = Modifier.padding(bottom = 4.dp),
+            )
+            LinearProgressIndicator(
+              modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 4.dp),
+            )
+          }
+        }
+        else -> {}
+      }
       when (viewState.layoutMode) {
         BookOverviewLayoutMode.List -> {
           ListBooks(
@@ -232,6 +285,7 @@ fun BookOverviewPreview(
   VoiceTheme {
     BookOverview(
       viewState = viewState,
+      snackbarHostState = remember { SnackbarHostState() },
       onSettingsClick = {},
       onBookClick = {},
       onBookLongClick = {},

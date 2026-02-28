@@ -5,8 +5,10 @@ import dev.zacsweers.metro.ContributesTo
 import dev.zacsweers.metro.GraphExtension
 import voice.features.bookOverview.bottomSheet.BottomSheetViewModel
 import voice.features.bookOverview.deleteBook.DeleteBookViewModel
+import voice.features.bookOverview.editBookCategory.EditBookCategoryViewModel
 import voice.features.bookOverview.editTitle.EditBookTitleViewModel
 import voice.features.bookOverview.fileCover.FileCoverViewModel
+import voice.features.bookOverview.internetCover.InternetCoverViewModel
 import voice.features.bookOverview.overview.BookOverviewViewModel
 
 annotation class BookOverviewScope
@@ -19,6 +21,8 @@ interface BookOverviewGraph {
   val bottomSheetViewModel: BottomSheetViewModel
   val deleteBookViewModel: DeleteBookViewModel
   val fileCoverViewModel: FileCoverViewModel
+  val editBookCategoryViewModel: EditBookCategoryViewModel
+  val internetCoverViewModel: InternetCoverViewModel
 
   @GraphExtension.Factory
   @ContributesTo(AppScope::class)

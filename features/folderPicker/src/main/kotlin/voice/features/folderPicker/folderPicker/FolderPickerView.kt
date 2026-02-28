@@ -1,6 +1,7 @@
 package voice.features.folderPicker.folderPicker
 
 import android.net.Uri
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -129,28 +130,30 @@ private fun FolderOverviewView(
             FolderTypeIcon(folderType = item.folderType)
           },
           trailingContent = {
-            if (item.folderType == FolderType.Remote) {
+            Row {
+              if (item.folderType == FolderType.Remote) {
+                IconButton(
+                  onClick = { onEditClick(item) },
+                  content = {
+                    Icon(
+                      imageVector = Icons.Outlined.Edit,
+                      contentDescription = stringResource(StringsR.string.edit),
+                    )
+                  },
+                )
+              }
               IconButton(
-                onClick = { onEditClick(item) },
+                onClick = {
+                  onDeleteClick(item)
+                },
                 content = {
                   Icon(
-                    imageVector = Icons.Outlined.Edit,
-                    contentDescription = stringResource(StringsR.string.edit),
+                    imageVector = Icons.Outlined.Delete,
+                    contentDescription = stringResource(StringsR.string.delete),
                   )
                 },
               )
             }
-            IconButton(
-              onClick = {
-                onDeleteClick(item)
-              },
-              content = {
-                Icon(
-                  imageVector = Icons.Outlined.Delete,
-                  contentDescription = stringResource(StringsR.string.delete),
-                )
-              },
-            )
           },
           headlineContent = {
             Text(text = item.name)

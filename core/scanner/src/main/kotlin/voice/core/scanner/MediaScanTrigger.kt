@@ -74,4 +74,10 @@ internal constructor(
       coverScanner.scan(books)
     }
   }
+
+  public suspend fun scanAndAwait(restartIfScanning: Boolean = false) {
+    scan(restartIfScanning)
+    scannerActive.first { it }
+    scannerActive.first { !it }
+  }
 }

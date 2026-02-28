@@ -42,6 +42,7 @@ import voice.core.remote.RemoteBook
 import voice.core.remote.RemoteCatalogRepo
 import voice.core.remote.RemotePaths
 import voice.core.remote.SftpSettingsProvider
+import voice.core.remote.SyncState
 import voice.core.scanner.DeviceHasStoragePermissionBug
 import voice.core.scanner.MediaScanTrigger
 import voice.core.search.BookSearch
@@ -83,7 +84,10 @@ class BookOverviewViewModelTest {
   private val remoteCatalogRepo = mockk<RemoteCatalogRepo> {
     every { flow() } returns flowOf(emptyList())
   }
-  private val librarySyncManager = mockk<LibrarySyncManager>()
+  private val _syncState = MutableStateFlow<SyncState>(SyncState.Idle)
+  private val librarySyncManager = mockk<LibrarySyncManager> {
+    every { syncState } returns _syncState
+  }
   private val _downloadState = MutableStateFlow<DownloadState>(DownloadState.Idle)
   private val downloadManager = mockk<DownloadManager> {
     every { downloadState } returns _downloadState
@@ -259,6 +263,22 @@ class BookOverviewViewModelTest {
       val allItems = state.books.values.flatten()
       val book = allItems.find { it.name == "Remote Title" }
       book?.remoteState shouldBe RemoteBookState.Downloading(remoteId, 0.5f)
+    }
+  }
+
+  @Test
+  fun `sync state is reflected in view state`() = runTest {
+    every { remoteCatalogRepo.flow() } returns flowOf(emptyList())
+
+    backgroundScope.launchMolecule(RecompositionMode.Immediate) {
+      viewModel.state()
+    }.test {
+      skipItems(1)
+      awaitItem().syncState shouldBe SyncState.Idle
+
+      _syncState.value = SyncState.Syncing("Processing: folder1")
+      val state = awaitItem()
+      state.syncState shouldBe SyncState.Syncing("Processing: folder1")
     }
   }
 }

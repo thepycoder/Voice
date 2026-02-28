@@ -40,6 +40,7 @@ import voice.core.remote.RemoteBook
 import voice.core.remote.RemoteCatalogRepo
 import voice.core.remote.RemotePaths
 import voice.core.remote.SftpSettingsProvider
+import voice.core.remote.SyncState
 import voice.core.scanner.MediaScanTrigger
 import voice.core.search.BookSearch
 import voice.core.ui.GridCount
@@ -112,11 +113,14 @@ class BookOverviewViewModel(
       .collectAsState(initial = emptyList()).value
     val downloadState = remember { downloadManager.downloadState }
       .collectAsState(initial = DownloadState.Idle).value
+    val syncState = remember { librarySyncManager.syncState }
+      .collectAsState(initial = SyncState.Idle).value
 
     val downloadsPath = File(application.filesDir, RemotePaths.DOWNLOADS_DIR).absolutePath
-    val downloadedRemoteIds = contentList.mapNotNull { content ->
-      getEffectiveRemoteId(content, downloadsPath)
-    }.toSet()
+    val downloadedRemoteIds = contentList
+      .filter { it.isActive }
+      .mapNotNull { content -> getEffectiveRemoteId(content, downloadsPath) }
+      .toSet()
 
     val remoteBookViewStates = remoteBooksList
       .filter { it.id !in downloadedRemoteIds }
@@ -178,6 +182,7 @@ class BookOverviewViewModel(
       searchViewState = bookSearchViewState,
       showStoragePermissionBugCard = hasStoragePermissionBug,
       showFolderPickerIcon = !folderPickerInSettingsFeatureFlag.get(),
+      syncState = syncState,
     )
   }
 
@@ -283,6 +288,10 @@ class BookOverviewViewModel(
         ),
       )
     }
+  }
+
+  fun onSyncStateDismissed() {
+    librarySyncManager.clearSyncState()
   }
 
   private fun getRemoteCoverFile(remoteBook: RemoteBook): File? {

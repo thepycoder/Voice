@@ -9,6 +9,7 @@ import androidx.core.net.toUri
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
 import dev.zacsweers.metro.Inject
+import dev.zacsweers.metro.SingleIn
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -23,6 +24,7 @@ import voice.core.remote.SftpSettingsProvider
 import voice.core.scanner.MediaScanTrigger
 import java.io.File
 
+@SingleIn(AppScope::class)
 @Inject
 @ContributesBinding(AppScope::class)
 public class DownloadManagerImpl(
@@ -79,7 +81,7 @@ public class DownloadManagerImpl(
         }
       }
 
-      mediaScanTrigger.scan(restartIfScanning = true)
+      mediaScanTrigger.scanAndAwait(restartIfScanning = true)
 
       setRemoteBookIdAfterDownload(book.id)
 

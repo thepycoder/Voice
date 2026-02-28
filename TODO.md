@@ -1,0 +1,6 @@
+- [x] When adding a remote folder, the sync is silent, no feedback at all! Need some progress meter or at least a status updater showing what is currently syncing.
+- [x] Downloading is the same: no feedback at all
+- [x] Long pressing a downloaded book should allow me to delete it
+- [x] Downloaded book does not have chapters?
+- [x] Remote folder edit and remove icons overlap
+- [x] Deleting a downloaded audibook should revert to the remote book card. Instead, now after a delete the book isn't visible at all anymore

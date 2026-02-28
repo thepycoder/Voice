@@ -3,6 +3,7 @@ package voice.features.bookOverview.overview
 import androidx.compose.runtime.Immutable
 import kotlinx.collections.immutable.ImmutableMap
 import kotlinx.collections.immutable.persistentMapOf
+import voice.core.remote.SyncState
 import voice.features.bookOverview.search.BookSearchViewState
 
 @Immutable
@@ -17,6 +18,7 @@ data class BookOverviewViewState(
   val searchViewState: BookSearchViewState,
   val showStoragePermissionBugCard: Boolean,
   val showFolderPickerIcon: Boolean,
+  val syncState: SyncState = SyncState.Idle,
 ) {
 
   companion object {
@@ -35,6 +37,7 @@ data class BookOverviewViewState(
       ),
       showStoragePermissionBugCard = false,
       showFolderPickerIcon = true,
+      syncState = SyncState.Idle,
     )
   }
 
