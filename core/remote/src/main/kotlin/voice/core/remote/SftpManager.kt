@@ -5,16 +5,9 @@ package voice.core.remote
 import dev.zacsweers.metro.Inject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import net.schmizz.sshj.Config
 import net.schmizz.sshj.DefaultConfig
 import net.schmizz.sshj.SSHClient
 import net.schmizz.sshj.sftp.SFTPClient
-import net.schmizz.sshj.transport.kex.Curve25519SHA256
-import net.schmizz.sshj.transport.kex.DHG1
-import net.schmizz.sshj.transport.kex.DHG14
-import net.schmizz.sshj.transport.kex.DHGexSHA1
-import net.schmizz.sshj.transport.kex.DHGexSHA256
-import net.schmizz.sshj.transport.kex.ECDHNistP
 import net.schmizz.sshj.transport.verification.PromiscuousVerifier
 import voice.core.logging.api.Logger
 import java.io.File
@@ -24,19 +17,6 @@ public class SftpManager(
   private val sftpSettings: SftpSettingsProvider,
 ) {
 
-  private fun createAndroidCompatibleConfig(): Config {
-    val config = DefaultConfig()
-    config.setKeyExchangeFactories(
-      Curve25519SHA256.Factory(),
-      DHGexSHA256.Factory(),
-      ECDHNistP.Factory256(),
-      DHGexSHA1.Factory(),
-      DHG14.Factory(),
-      DHG1.Factory(),
-    )
-    return config
-  }
-
   public suspend fun testConnection() {
     withContext(Dispatchers.IO) {
       val settings = sftpSettings.get()
@@ -45,8 +25,7 @@ public class SftpManager(
         throw IllegalStateException("SFTP settings not configured")
       }
 
-      val config = createAndroidCompatibleConfig()
-      val ssh = SSHClient(config)
+      val ssh = SSHClient(DefaultConfig())
       ssh.addHostKeyVerifier(PromiscuousVerifier())
 
       var currentStep = "Initialization"
@@ -178,8 +157,7 @@ public class SftpManager(
       throw IllegalStateException("SFTP settings not configured")
     }
 
-    val config = createAndroidCompatibleConfig()
-    val ssh = SSHClient(config)
+    val ssh = SSHClient(DefaultConfig())
     ssh.addHostKeyVerifier(PromiscuousVerifier())
 
     try {

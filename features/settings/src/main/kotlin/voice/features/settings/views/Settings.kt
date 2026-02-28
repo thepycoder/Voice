@@ -8,7 +8,6 @@ import androidx.compose.material.icons.automirrored.outlined.ViewList
 import androidx.compose.material.icons.outlined.Analytics
 import androidx.compose.material.icons.outlined.BarChart
 import androidx.compose.material.icons.outlined.Book
-import androidx.compose.material.icons.outlined.Cloud
 import androidx.compose.material.icons.outlined.BugReport
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.GridView
@@ -166,24 +165,6 @@ private fun Settings(
           },
           supportingContent = {
             Text("View your listening history and statistics")
-          },
-        )
-      }
-
-      item {
-        ListItem(
-          modifier = Modifier.clickable { listener.openSftpSettings() },
-          leadingContent = {
-            Icon(
-              imageVector = Icons.Outlined.Cloud,
-              contentDescription = "Remote library (SFTP)",
-            )
-          },
-          headlineContent = {
-            Text("Remote library (SFTP)")
-          },
-          supportingContent = {
-            Text("Configure NAS/SFTP connection for remote audiobooks")
           },
         )
       }

@@ -63,8 +63,10 @@ class SftpSettingsViewModel(
     sftpSettingsProvider.update { it.copy(remotePath = value) }
   }
 
-  fun onSave() = scope.launch {
-    testMessage = null
+  fun onSave() {
+    scope.launch {
+      testMessage = null
+    }
   }
 
   fun onTestConnection() {

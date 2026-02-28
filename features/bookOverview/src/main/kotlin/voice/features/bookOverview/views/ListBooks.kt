@@ -48,9 +48,6 @@ internal fun ListBooks(
   showPermissionBugCard: Boolean,
   onPermissionBugCardClick: () -> Unit,
   remoteBooks: List<RemoteBookItemViewState> = emptyList(),
-  remoteSyncInProgress: Boolean = false,
-  remoteSyncError: String? = null,
-  onRemoteSync: () -> Unit = {},
   onRemoteDownload: (voice.core.remote.RemoteBook) -> Unit = {},
   onRemoteRemove: (voice.core.remote.RemoteBook) -> Unit = {},
   onRemotePlay: (BookId) -> Unit = {},
@@ -62,9 +59,6 @@ internal fun ListBooks(
     item(key = "remote_section", contentType = "remote") {
       RemoteLibrarySection(
           remoteBooks = remoteBooks,
-          syncInProgress = remoteSyncInProgress,
-          syncError = remoteSyncError,
-          onSync = onRemoteSync,
           onDownload = onRemoteDownload,
           onRemove = onRemoteRemove,
           onPlay = onRemotePlay,

@@ -23,7 +23,6 @@ interface SettingsListener {
   fun openFolderPicker()
   fun onAppVersionClick()
   fun openListeningStats()
-  fun openSftpSettings()
 
   fun openDeveloperMenu()
 
@@ -49,7 +48,6 @@ interface SettingsListener {
       override fun openFolderPicker() {}
       override fun onAppVersionClick() {}
       override fun openListeningStats() {}
-      override fun openSftpSettings() {}
       override fun openDeveloperMenu() {}
     }
   }

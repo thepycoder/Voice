@@ -87,8 +87,6 @@ private fun BookOverviewTopBarPreview() {
         showStoragePermissionBugCard = false,
         showFolderPickerIcon = true,
         remoteBooks = listOf(),
-        remoteSyncInProgress = false,
-        remoteSyncError = null,
       ),
       onBookFolderClick = {},
       onSettingsClick = {},

@@ -5,6 +5,7 @@ plugins {
 }
 
 dependencies {
+  implementation(projects.core.initializer)
   implementation(projects.core.logging.api)
   implementation(projects.core.common)
   implementation(projects.core.data.api)

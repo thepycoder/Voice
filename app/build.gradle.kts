@@ -155,6 +155,7 @@ dependencies {
   implementation(projects.core.sleeptimer.impl)
   implementation(projects.features.sleepTimer)
   implementation(projects.features.settings)
+  implementation(projects.features.stats)
   implementation(projects.features.folderPicker)
   implementation(projects.features.bookOverview)
   implementation(projects.core.search)

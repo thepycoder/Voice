@@ -14,6 +14,7 @@ import voice.navigation.Navigator
 @ContributesTo(AppScope::class)
 interface StatsGraph {
   val listeningStatsViewModel: ListeningStatsViewModel
+  val navigator: Navigator
 }
 
 @ContributesTo(AppScope::class)
@@ -24,8 +25,9 @@ interface StatsNavEntryProviderModule {
   fun statsNavEntryProvider(): NavEntryProvider<*> =
     NavEntryProvider<Destination.ListeningStats> { key ->
       NavEntry(key) {
-        val navigator = rootGraphAs<Navigator>()
-        val viewModel = rememberScoped { rootGraphAs<StatsGraph>().listeningStatsViewModel }
+        val graph = rootGraphAs<StatsGraph>()
+        val navigator = graph.navigator
+        val viewModel = rememberScoped { graph.listeningStatsViewModel }
         ListeningStatsScreen(
           viewModel = viewModel,
           navigator = navigator,

@@ -18,8 +18,6 @@ data class BookOverviewViewState(
   val showStoragePermissionBugCard: Boolean,
   val showFolderPickerIcon: Boolean,
   val remoteBooks: List<RemoteBookItemViewState>,
-  val remoteSyncInProgress: Boolean,
-  val remoteSyncError: String?,
 ) {
 
   companion object {
@@ -39,8 +37,6 @@ data class BookOverviewViewState(
       showStoragePermissionBugCard = false,
       showFolderPickerIcon = true,
       remoteBooks = emptyList(),
-      remoteSyncInProgress = false,
-      remoteSyncError = null,
     )
   }
 

@@ -28,6 +28,7 @@ import voice.core.strings.R as StringsR
 internal fun SelectFolder(
   onBack: () -> Unit,
   onAdd: (FileTypeSelection, Uri) -> Unit,
+  onAddRemoteFolder: () -> Unit,
   origin: Origin,
   modifier: Modifier = Modifier,
 ) {
@@ -70,7 +71,7 @@ internal fun SelectFolder(
             style = MaterialTheme.typography.bodyLarge,
           )
           Spacer(modifier = Modifier.size(24.dp))
-          SelectFolderButtonRow(onAdd)
+          SelectFolderButtonRow(onAdd = onAdd, onAddRemoteFolder = onAddRemoteFolder)
         }
       }
     },
@@ -90,6 +91,7 @@ private fun SelectFolderPreview() {
   SelectFolder(
     onBack = {},
     onAdd = { _, _ -> },
+    onAddRemoteFolder = {},
     origin = Origin.Default,
   )
 }

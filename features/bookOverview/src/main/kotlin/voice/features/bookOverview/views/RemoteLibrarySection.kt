@@ -20,9 +20,6 @@ import voice.features.bookOverview.overview.RemoteBookItemViewState
 @Composable
 internal fun RemoteLibrarySection(
   remoteBooks: List<RemoteBookItemViewState>,
-  syncInProgress: Boolean,
-  syncError: String?,
-  onSync: () -> Unit,
   onDownload: (voice.core.remote.RemoteBook) -> Unit,
   onRemove: (voice.core.remote.RemoteBook) -> Unit,
   onPlay: (BookId) -> Unit,
@@ -34,21 +31,6 @@ internal fun RemoteLibrarySection(
       style = MaterialTheme.typography.titleMedium,
       color = MaterialTheme.colorScheme.onSurface,
     )
-    Button(
-      onClick = onSync,
-      enabled = !syncInProgress,
-      modifier = Modifier.padding(top = 8.dp),
-    ) {
-      Text(if (syncInProgress) "Syncing…" else "Sync")
-    }
-    if (syncError != null) {
-      Text(
-        text = syncError,
-        style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.error,
-        modifier = Modifier.padding(top = 4.dp),
-      )
-    }
     Column(
       modifier = Modifier.padding(top = 12.dp),
       verticalArrangement = Arrangement.spacedBy(8.dp),

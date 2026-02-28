@@ -12,6 +12,7 @@ import voice.core.ui.rememberScoped
 import voice.navigation.Destination
 import voice.navigation.NavEntryProvider
 import voice.navigation.Navigator
+import voice.navigation.Origin
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -39,6 +40,7 @@ import androidx.compose.ui.unit.dp
 @ContributesTo(AppScope::class)
 interface SftpSettingsGraph {
   val sftpSettingsViewModel: SftpSettingsViewModel
+  val navigator: Navigator
 }
 
 @ContributesTo(AppScope::class)
@@ -49,16 +51,17 @@ interface SftpSettingsNavEntryProviderModule {
   fun sftpSettingsNavEntryProvider(): NavEntryProvider<*> =
     NavEntryProvider<Destination.SftpSettings> { key ->
       NavEntry(key) {
-        SftpSettingsScreen()
+        SftpSettingsScreen(origin = key.origin)
       }
     }
 }
 
 @Composable
-private fun SftpSettingsScreen() {
-  val viewModel = rememberScoped { rootGraphAs<SftpSettingsGraph>().sftpSettingsViewModel }
-  val navigator = rootGraphAs<Navigator>()
-  SftpSettingsScreen(viewModel = viewModel, navigator = navigator)
+private fun SftpSettingsScreen(origin: Origin? = null) {
+  val graph = rootGraphAs<SftpSettingsGraph>()
+  val viewModel = rememberScoped { graph.sftpSettingsViewModel }
+  val navigator = graph.navigator
+  SftpSettingsScreen(viewModel = viewModel, navigator = navigator, origin = origin)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -66,6 +69,7 @@ private fun SftpSettingsScreen() {
 fun SftpSettingsScreen(
   viewModel: SftpSettingsViewModel,
   navigator: Navigator,
+  origin: Origin? = null,
 ) {
   val state = viewModel.viewState()
 
@@ -149,8 +153,17 @@ fun SftpSettingsScreen(
         )
       }
       Spacer(modifier = Modifier.height(24.dp))
-      TextButton(onClick = viewModel::onSave) {
-        Text("Save")
+      TextButton(
+        onClick = {
+          viewModel.onSave()
+          when (origin) {
+            Origin.Default -> navigator.setRoot(Destination.BookOverview)
+            Origin.Onboarding -> navigator.goTo(Destination.OnboardingCompletion)
+            null -> { }
+          }
+        },
+      ) {
+        Text(if (origin != null) "Add" else "Save")
       }
     }
   }

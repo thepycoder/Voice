@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AudioFile
+import androidx.compose.material.icons.outlined.Cloud
 import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -21,7 +22,10 @@ import voice.core.strings.R
 import voice.features.folderPicker.folderPicker.FileTypeSelection
 
 @Composable
-internal fun SelectFolderButtonRow(onAdd: (FileTypeSelection, Uri) -> Unit) {
+internal fun SelectFolderButtonRow(
+  onAdd: (FileTypeSelection, Uri) -> Unit,
+  onAddRemoteFolder: () -> Unit,
+) {
   Row(
     Modifier.fillMaxWidth(),
     horizontalArrangement = Arrangement.Center,
@@ -62,6 +66,12 @@ internal fun SelectFolderButtonRow(onAdd: (FileTypeSelection, Uri) -> Unit) {
           Logger.w(e, "Could not add file")
         }
       },
+    )
+    Spacer(modifier = Modifier.size(8.dp))
+    SelectFolderButton(
+      icon = Icons.Outlined.Cloud,
+      text = stringResource(id = R.string.select_folder_type_remote_folder),
+      onClick = onAddRemoteFolder,
     )
   }
 }

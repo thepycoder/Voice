@@ -45,7 +45,12 @@ class AddContentViewModel(
           ),
         )
       }
+      FileTypeSelection.RemoteFolder -> { }
     }
+  }
+
+  internal fun addRemoteFolder() {
+    navigator.goTo(Destination.SftpSettings(origin = origin))
   }
 
   internal fun back() {

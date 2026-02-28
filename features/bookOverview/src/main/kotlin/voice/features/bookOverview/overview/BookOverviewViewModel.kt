@@ -35,6 +35,7 @@ import voice.core.remote.DownloadState
 import voice.core.remote.LibrarySyncManager
 import voice.core.remote.RemoteBook
 import voice.core.remote.RemoteCatalogRepo
+import voice.core.remote.SftpSettingsProvider
 import voice.core.scanner.MediaScanTrigger
 import voice.core.search.BookSearch
 import voice.core.ui.GridCount
@@ -65,16 +66,21 @@ class BookOverviewViewModel(
   private val remoteCatalogRepo: RemoteCatalogRepo,
   private val librarySyncManager: LibrarySyncManager,
   private val downloadManager: DownloadManager,
+  private val sftpSettingsProvider: SftpSettingsProvider,
 ) {
 
   private val scope = MainScope()
   private var searchActive by mutableStateOf(false)
   private var query by mutableStateOf("")
-  private var remoteSyncInProgress by mutableStateOf(false)
-  private var remoteSyncError by mutableStateOf<String?>(null)
 
   fun attach() {
-    mediaScanner.scan()
+    scope.launch {
+      val settings = sftpSettingsProvider.get()
+      if (settings.remotePath.isNotBlank()) {
+        librarySyncManager.sync().let { }
+      }
+      mediaScanner.scan()
+    }
   }
 
   @Composable
@@ -159,36 +165,18 @@ class BookOverviewViewModel(
       showStoragePermissionBugCard = hasStoragePermissionBug,
       showFolderPickerIcon = !folderPickerInSettingsFeatureFlag.get(),
       remoteBooks = remoteBookItems,
-      remoteSyncInProgress = remoteSyncInProgress,
-      remoteSyncError = remoteSyncError,
     )
-  }
-
-  fun onRemoteSync() {
-    remoteSyncError = null
-    remoteSyncInProgress = true
-    scope.launch {
-      val result = librarySyncManager.sync {}
-      remoteSyncInProgress = false
-      if (result is LibrarySyncManager.SyncResult.Error) {
-        remoteSyncError = result.message
-      }
-    }
   }
 
   fun onRemoteBookDownload(book: RemoteBook) {
     scope.launch {
-      downloadManager.downloadBook(book).onFailure {
-        remoteSyncError = it.message
-      }
+      downloadManager.downloadBook(book).let { }
     }
   }
 
   fun onRemoteBookRemove(book: RemoteBook) {
     scope.launch {
-      downloadManager.removeBook(book).onFailure {
-        remoteSyncError = it.message
-      }
+      downloadManager.removeBook(book).let { }
     }
   }
 

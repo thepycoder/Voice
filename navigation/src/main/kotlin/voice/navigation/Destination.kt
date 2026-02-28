@@ -103,7 +103,7 @@ sealed interface Destination {
   }
 
   @Serializable
-  data object SftpSettings : Compose {
+  data class SftpSettings(val origin: Origin? = null) : Compose {
     override val trackingName: String get() = "SftpSettings"
   }
 }
