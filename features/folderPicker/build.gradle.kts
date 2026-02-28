@@ -19,6 +19,7 @@ dependencies {
   implementation(projects.core.documentfile)
   implementation(projects.navigation)
   implementation(projects.core.featureflag)
+  implementation(projects.core.remote)
 
   implementation(libs.datastore)
   implementation(libs.coil)

@@ -8,6 +8,7 @@ import androidx.compose.material.icons.outlined.Download
 import androidx.compose.material.icons.outlined.HourglassEmpty
 import androidx.compose.material.icons.outlined.Image
 import androidx.compose.material.icons.outlined.NotStarted
+import androidx.compose.material.icons.outlined.RemoveCircleOutline
 import androidx.compose.material.icons.outlined.Title
 import androidx.compose.ui.graphics.vector.ImageVector
 import voice.core.strings.R as StringsR
@@ -25,4 +26,6 @@ enum class BottomSheetItem(
   BookCategoryMarkAsNotStarted(StringsR.string.mark_as_not_started, Icons.Outlined.HourglassEmpty),
   BookCategoryMarkAsCurrent(StringsR.string.mark_as_current, Icons.Outlined.NotStarted),
   BookCategoryMarkAsCompleted(StringsR.string.mark_as_completed, Icons.Outlined.Done),
+  Download(StringsR.string.download, Icons.Outlined.Download),
+  RemoveDownload(StringsR.string.remove_download, Icons.Outlined.RemoveCircleOutline),
 }

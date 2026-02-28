@@ -19,9 +19,9 @@ internal class MediaScanner(
 ) {
 
   suspend fun scan(folders: Map<FolderType, List<CachedDocumentFile>>) {
-    val files = folders.flatMap { (folderType, files) ->
+    val files: List<CachedDocumentFile> = folders.flatMap { (folderType, files) ->
       when (folderType) {
-        FolderType.SingleFile, FolderType.SingleFolder -> {
+        FolderType.SingleFile, FolderType.SingleFolder, FolderType.Remote -> {
           files
         }
         FolderType.Root -> {
@@ -35,9 +35,7 @@ internal class MediaScanner(
               if (author.isFile) {
                 listOf(author)
               } else {
-                author.children.flatMap {
-                  author.children
-                }
+                author.children
               }
             }
           }

@@ -86,7 +86,6 @@ private fun BookOverviewTopBarPreview() {
         ),
         showStoragePermissionBugCard = false,
         showFolderPickerIcon = true,
-        remoteBooks = listOf(),
       ),
       onBookFolderClick = {},
       onSettingsClick = {},

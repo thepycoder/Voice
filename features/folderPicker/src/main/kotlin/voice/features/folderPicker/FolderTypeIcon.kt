@@ -3,6 +3,7 @@ package voice.features.folderPicker
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.LibraryBooks
 import androidx.compose.material.icons.outlined.AudioFile
+import androidx.compose.material.icons.outlined.CloudQueue
 import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material3.Icon
@@ -25,6 +26,7 @@ private fun FolderType.icon(): ImageVector = when (this) {
   FolderType.SingleFolder -> Icons.Outlined.Folder
   FolderType.Root -> Icons.AutoMirrored.Outlined.LibraryBooks
   FolderType.Author -> Icons.Outlined.Person
+  FolderType.Remote -> Icons.Outlined.CloudQueue
 }
 
 @Composable
@@ -35,6 +37,7 @@ private fun FolderType.contentDescription(): String {
     -> StringsR.string.folder_mode_single
     FolderType.Root -> StringsR.string.folder_mode_root
     FolderType.Author -> StringsR.string.folder_mode_author
+    FolderType.Remote -> StringsR.string.folder_mode_remote
   }
   return stringResource(res)
 }

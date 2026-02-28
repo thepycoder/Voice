@@ -9,6 +9,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -68,6 +69,9 @@ fun FolderOverview() {
     onDeleteClick = {
       viewModel.removeFolder(it)
     },
+    onEditClick = {
+      viewModel.editFolder(it)
+    },
     onCloseClick = viewModel::onCloseClick,
   )
 }
@@ -77,6 +81,7 @@ private fun FolderOverviewView(
   viewState: FolderPickerViewState,
   onAddClick: () -> Unit,
   onDeleteClick: (FolderPickerViewState.Item) -> Unit,
+  onEditClick: (FolderPickerViewState.Item) -> Unit,
   onCloseClick: () -> Unit,
 ) {
   val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
@@ -124,6 +129,17 @@ private fun FolderOverviewView(
             FolderTypeIcon(folderType = item.folderType)
           },
           trailingContent = {
+            if (item.folderType == FolderType.Remote) {
+              IconButton(
+                onClick = { onEditClick(item) },
+                content = {
+                  Icon(
+                    imageVector = Icons.Outlined.Edit,
+                    contentDescription = stringResource(StringsR.string.edit),
+                  )
+                },
+              )
+            }
             IconButton(
               onClick = {
                 onDeleteClick(item)
@@ -171,6 +187,7 @@ fun FolderOverviewPreview() {
     ),
     onAddClick = { },
     onDeleteClick = {},
-  ) {
-  }
+    onEditClick = {},
+    onCloseClick = {},
+  )
 }

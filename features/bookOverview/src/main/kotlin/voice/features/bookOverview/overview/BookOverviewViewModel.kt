@@ -1,5 +1,6 @@
 package voice.features.bookOverview.overview
 
+import android.app.Application
 import android.content.Intent
 import android.os.Build
 import android.provider.Settings
@@ -16,8 +17,10 @@ import androidx.datastore.core.DataStore
 import dev.zacsweers.metro.Inject
 import kotlinx.collections.immutable.toImmutableMap
 import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import voice.core.common.comparator.sortedNaturally
+import voice.core.data.BookContent
 import voice.core.data.BookId
 import voice.core.data.GridMode
 import voice.core.data.repo.BookContentRepo
@@ -35,6 +38,7 @@ import voice.core.remote.DownloadState
 import voice.core.remote.LibrarySyncManager
 import voice.core.remote.RemoteBook
 import voice.core.remote.RemoteCatalogRepo
+import voice.core.remote.RemotePaths
 import voice.core.remote.SftpSettingsProvider
 import voice.core.scanner.MediaScanTrigger
 import voice.core.search.BookSearch
@@ -43,10 +47,12 @@ import voice.features.bookOverview.di.BookOverviewScope
 import voice.features.bookOverview.search.BookSearchViewState
 import voice.navigation.Destination
 import voice.navigation.Navigator
+import java.io.File
 
 @BookOverviewScope
 @Inject
 class BookOverviewViewModel(
+  private val application: Application,
   private val repo: BookRepository,
   private val mediaScanner: MediaScanTrigger,
   private val playStateManager: PlayStateManager,
@@ -78,6 +84,8 @@ class BookOverviewViewModel(
       val settings = sftpSettingsProvider.get()
       if (settings.remotePath.isNotBlank()) {
         librarySyncManager.sync().let { }
+      } else {
+        librarySyncManager.clearAll()
       }
       mediaScanner.scan()
     }
@@ -89,7 +97,7 @@ class BookOverviewViewModel(
       .collectAsState(initial = PlayStateManager.PlayState.Paused).value
     val hasStoragePermissionBug = remember { deviceHasStoragePermissionBug.hasBug }
       .collectAsState().value
-    val books = remember { repo.flow() }
+    val booksList = remember { repo.flow() }
       .collectAsState(initial = emptyList()).value
     val currentBookId = remember { currentBookStoreDataStore.data }
       .collectAsState(initial = null).value
@@ -105,21 +113,21 @@ class BookOverviewViewModel(
     val downloadState = remember { downloadManager.downloadState }
       .collectAsState(initial = DownloadState.Idle).value
 
-    val noBooks = !scannerActive && books.isEmpty()
-    val remoteBookItems = remoteBooksList.map { remoteBook ->
-      val isDownloaded = contentList.any { it.remoteBookId == remoteBook.id }
-      val localBookId = contentList.find { it.remoteBookId == remoteBook.id }?.id
-      val progress = when (downloadState) {
-        is DownloadState.Downloading -> if (downloadState.remoteBookId == remoteBook.id) downloadState.progress else null
-        else -> null
+    val downloadsPath = File(application.filesDir, RemotePaths.DOWNLOADS_DIR).absolutePath
+    val downloadedRemoteIds = contentList.mapNotNull { content ->
+      getEffectiveRemoteId(content, downloadsPath)
+    }.toSet()
+
+    val remoteBookViewStates = remoteBooksList
+      .filter { it.id !in downloadedRemoteIds }
+      .map { remoteBook ->
+        remoteBook.toItemViewState(
+          coverFile = getRemoteCoverFile(remoteBook),
+          downloadState = downloadState,
+        )
       }
-      RemoteBookItemViewState(
-        remoteBook = remoteBook,
-        isDownloaded = isDownloaded,
-        localBookId = localBookId,
-        downloadProgress = progress,
-      )
-    }
+
+    val noBooks = !scannerActive && booksList.isEmpty() && remoteBookViewStates.isEmpty()
 
     val layoutMode = when (gridMode) {
       GridMode.LIST -> BookOverviewLayoutMode.List
@@ -135,19 +143,25 @@ class BookOverviewViewModel(
 
     return BookOverviewViewState(
       layoutMode = layoutMode,
-      books = books
-        .groupBy {
-          it.category
-        }
-        .mapValues { (category, books) ->
-          books
-            .sortedWith(category.comparator)
-            .map { book ->
-              book.toItemViewState()
-            }
-        }
-        .toSortedMap()
-        .toImmutableMap(),
+      books = run {
+        val groupedBooks = booksList
+          .groupBy { it.category }
+          .mapValues { (category, categoryBooks) ->
+            categoryBooks
+              .sortedWith(category.comparator)
+              .map { book ->
+                val remoteId = getEffectiveRemoteId(book.content, downloadsPath)
+                book.toItemViewState(remoteId)
+              }
+          }
+          .toMutableMap()
+
+        // Add remote books (not downloaded) to NOT_STARTED category
+        val notStartedBooks = groupedBooks[BookOverviewCategory.NOT_STARTED].orEmpty()
+        groupedBooks[BookOverviewCategory.NOT_STARTED] = notStartedBooks + remoteBookViewStates
+
+        groupedBooks.toSortedMap().toImmutableMap()
+      },
       playButtonState = if (playState == PlayStateManager.PlayState.Playing) {
         BookOverviewViewState.PlayButtonState.Playing
       } else {
@@ -158,30 +172,13 @@ class BookOverviewViewModel(
       } else {
         noBooks
       },
-      showSearchIcon = books.isNotEmpty(),
+      showSearchIcon = booksList.isNotEmpty(),
       isLoading = scannerActive,
       searchActive = searchActive,
       searchViewState = bookSearchViewState,
       showStoragePermissionBugCard = hasStoragePermissionBug,
       showFolderPickerIcon = !folderPickerInSettingsFeatureFlag.get(),
-      remoteBooks = remoteBookItems,
     )
-  }
-
-  fun onRemoteBookDownload(book: RemoteBook) {
-    scope.launch {
-      downloadManager.downloadBook(book).let { }
-    }
-  }
-
-  fun onRemoteBookRemove(book: RemoteBook) {
-    scope.launch {
-      downloadManager.removeBook(book).let { }
-    }
-  }
-
-  fun onRemoteBookPlay(localBookId: BookId) {
-    navigator.goTo(Destination.Playback(localBookId))
   }
 
   @Composable
@@ -232,6 +229,18 @@ class BookOverviewViewModel(
   }
 
   fun onBookClick(id: BookId) {
+    // Check if this is a remote book
+    if (id.value.startsWith("remote://")) {
+      val remoteId = id.value.removePrefix("remote://")
+      scope.launch {
+        val books = remoteCatalogRepo.flow().first()
+        val book = books.find { it.id == remoteId }
+        if (book != null) {
+          downloadManager.downloadBook(book).let { }
+        }
+      }
+      return
+    }
     navigator.goTo(Destination.Playback(id))
   }
 
@@ -274,5 +283,19 @@ class BookOverviewViewModel(
         ),
       )
     }
+  }
+
+  private fun getRemoteCoverFile(remoteBook: RemoteBook): File? {
+    if (remoteBook.coverFileName == null) return null
+    val coversDir = File(application.filesDir, RemotePaths.COVERS_DIR)
+    val coverFile = File(coversDir, "${remoteBook.id}.jpg")
+    return if (coverFile.exists()) coverFile else null
+  }
+
+  private fun getEffectiveRemoteId(content: BookContent, downloadsPath: String): String? {
+    content.remoteBookId?.let { return it }
+    return if (content.id.value.contains(downloadsPath)) {
+      content.id.value.substringAfter("$downloadsPath/").substringBefore("/")
+    } else null
   }
 }

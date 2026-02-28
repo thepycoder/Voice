@@ -40,7 +40,7 @@ import kotlinx.collections.immutable.ImmutableMap
 import voice.core.data.BookId
 import voice.features.bookOverview.overview.BookOverviewCategory
 import voice.features.bookOverview.overview.BookOverviewItemViewState
-import voice.features.bookOverview.overview.RemoteBookItemViewState
+import voice.features.bookOverview.overview.RemoteBookState
 import kotlin.math.roundToInt
 import voice.core.ui.R as UiR
 
@@ -51,10 +51,6 @@ internal fun GridBooks(
   onBookLongClick: (BookId) -> Unit,
   showPermissionBugCard: Boolean,
   onPermissionBugCardClick: () -> Unit,
-  remoteBooks: List<RemoteBookItemViewState> = emptyList(),
-  onRemoteDownload: (voice.core.remote.RemoteBook) -> Unit = {},
-  onRemoteRemove: (voice.core.remote.RemoteBook) -> Unit = {},
-  onRemotePlay: (BookId) -> Unit = {},
 ) {
   val cellCount = gridColumnCount()
   LazyVerticalGrid(
@@ -63,14 +59,6 @@ internal fun GridBooks(
     horizontalArrangement = Arrangement.spacedBy(8.dp),
     contentPadding = PaddingValues(start = 8.dp, end = 8.dp, top = 24.dp, bottom = 4.dp),
   ) {
-    item(span = { GridItemSpan(maxLineSpan) }, key = "remote_section", contentType = "remote") {
-      RemoteLibrarySection(
-        remoteBooks = remoteBooks,
-        onDownload = onRemoteDownload,
-        onRemove = onRemoteRemove,
-        onPlay = onRemotePlay,
-      )
-    }
     if (showPermissionBugCard) {
       item(
         span = { GridItemSpan(maxLineSpan) },
@@ -126,7 +114,7 @@ internal fun GridBook(
       ),
   ) {
     Column(
-      modifier = Modifier.padding(start = 12.dp, end = 12.dp, top = 12.dp),
+      modifier = Modifier.padding(12.dp),
     ) {
       Box(
         modifier = Modifier
@@ -176,10 +164,44 @@ internal fun GridBook(
       }
 
       Spacer(Modifier.height(8.dp))
-      if (book.progress > 0.05f) {
-        LinearProgressIndicator(
-          progress = { book.progress },
-        )
+      when (val remote = book.remoteState) {
+        is RemoteBookState.NotDownloaded -> {
+          Text(
+            text = "Tap to download",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.primary,
+          )
+        }
+        is RemoteBookState.Downloading -> {
+          Column {
+            Text(
+              text = if (remote.progress > 0f) "Downloading…" else "Starting download…",
+              style = MaterialTheme.typography.labelSmall,
+              color = MaterialTheme.colorScheme.primary,
+            )
+            Spacer(Modifier.height(4.dp))
+            LinearProgressIndicator(
+              progress = { remote.progress },
+              modifier = Modifier.fillMaxWidth(),
+            )
+          }
+        }
+        is RemoteBookState.Downloaded -> {
+          Text(
+            text = "Downloaded",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.secondary,
+          )
+        }
+        null -> {
+          // Show normal progress for local/downloaded books
+          if (book.progress > 0.05) {
+            LinearProgressIndicator(
+              progress = { book.progress },
+              modifier = Modifier.fillMaxWidth(),
+            )
+          }
+        }
       }
     }
   }

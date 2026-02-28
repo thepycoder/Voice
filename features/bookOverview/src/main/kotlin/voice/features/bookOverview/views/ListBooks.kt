@@ -37,7 +37,7 @@ import voice.core.data.BookId
 import voice.core.ui.ImmutableFile
 import voice.features.bookOverview.overview.BookOverviewCategory
 import voice.features.bookOverview.overview.BookOverviewItemViewState
-import voice.features.bookOverview.overview.RemoteBookItemViewState
+import voice.features.bookOverview.overview.RemoteBookState
 import voice.core.ui.R as UiR
 
 @Composable
@@ -47,23 +47,11 @@ internal fun ListBooks(
   onBookLongClick: (BookId) -> Unit,
   showPermissionBugCard: Boolean,
   onPermissionBugCardClick: () -> Unit,
-  remoteBooks: List<RemoteBookItemViewState> = emptyList(),
-  onRemoteDownload: (voice.core.remote.RemoteBook) -> Unit = {},
-  onRemoteRemove: (voice.core.remote.RemoteBook) -> Unit = {},
-  onRemotePlay: (BookId) -> Unit = {},
 ) {
   LazyColumn(
     verticalArrangement = Arrangement.spacedBy(8.dp),
     contentPadding = PaddingValues(top = 24.dp, start = 8.dp, end = 8.dp, bottom = 16.dp),
   ) {
-    item(key = "remote_section", contentType = "remote") {
-      RemoteLibrarySection(
-          remoteBooks = remoteBooks,
-          onDownload = onRemoteDownload,
-          onRemove = onRemoteRemove,
-          onPlay = onRemotePlay,
-        )
-    }
     if (showPermissionBugCard) {
       item {
         PermissionBugCard(onPermissionBugCardClick)
@@ -166,17 +154,55 @@ internal fun ListBookRow(
         }
       }
 
-      if (book.progress > 0.05f) {
-        Spacer(Modifier.size(0.dp))
-        LinearProgressIndicator(
-          progress = { book.progress },
-          modifier = Modifier
-            .fillMaxWidth()
-            .clip(MaterialTheme.shapes.small)
-            .height(4.dp),
-          color = MaterialTheme.colorScheme.primary,
-          trackColor = MaterialTheme.colorScheme.surfaceVariant,
-        )
+      when (val remote = book.remoteState) {
+        is RemoteBookState.NotDownloaded -> {
+          Text(
+            text = "Tap to download",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.padding(start = 12.dp, bottom = 8.dp),
+          )
+        }
+        is RemoteBookState.Downloading -> {
+          Column(Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
+            Text(
+              text = if (remote.progress > 0f) "Downloading…" else "Starting download…",
+              style = MaterialTheme.typography.labelSmall,
+              color = MaterialTheme.colorScheme.primary,
+            )
+            Spacer(Modifier.height(4.dp))
+            LinearProgressIndicator(
+              progress = { remote.progress },
+              modifier = Modifier
+                .fillMaxWidth()
+                .clip(MaterialTheme.shapes.small)
+                .height(4.dp),
+              color = MaterialTheme.colorScheme.primary,
+              trackColor = MaterialTheme.colorScheme.surfaceVariant,
+            )
+          }
+        }
+        is RemoteBookState.Downloaded -> {
+          Text(
+            text = "Downloaded",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.secondary,
+            modifier = Modifier.padding(start = 12.dp, bottom = 8.dp),
+          )
+        }
+        null -> {
+          if (book.progress > 0.05f) {
+            LinearProgressIndicator(
+              progress = { book.progress },
+              modifier = Modifier
+                .fillMaxWidth()
+                .clip(MaterialTheme.shapes.small)
+                .height(4.dp),
+              color = MaterialTheme.colorScheme.primary,
+              trackColor = MaterialTheme.colorScheme.surfaceVariant,
+            )
+          }
+        }
       }
     }
   }

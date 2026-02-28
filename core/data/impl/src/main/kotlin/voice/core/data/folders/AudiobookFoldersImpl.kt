@@ -17,6 +17,7 @@ import voice.core.analytics.api.Analytics
 import voice.core.documentfile.CachedDocumentFile
 import voice.core.documentfile.CachedDocumentFileFactory
 import voice.core.logging.api.Logger
+import voice.core.remote.SftpSettingsProvider
 
 @ContributesBinding(AppScope::class)
 public class AudiobookFoldersImpl
@@ -32,12 +33,13 @@ internal constructor(
   private val context: Context,
   private val cachedDocumentFileFactory: CachedDocumentFileFactory,
   private val analytics: Analytics,
+  private val sftpSettingsProvider: SftpSettingsProvider,
 ) : AudiobookFolders {
 
   private val scope = MainScope()
 
   public override fun all(): Flow<Map<FolderType, List<DocumentFileWithUri>>> {
-    val flows = FolderType.entries
+    val flows = FolderType.entries.filter { it != FolderType.Remote }
       .map { folderType ->
         dataStore(folderType).data.map { uris ->
           val documentFiles = uris.map { uri ->
@@ -61,6 +63,8 @@ internal constructor(
           DocumentsContract.getTreeDocumentId(this),
         )
       }
+
+      FolderType.Remote -> error("Remote folder is not supported")
     }
     return cachedDocumentFileFactory.create(uri)
   }
@@ -111,12 +115,15 @@ internal constructor(
       FolderType.SingleFolder -> singleFolderAudiobookFoldersStore
       FolderType.Root -> rootAudioBookFoldersStore
       FolderType.Author -> authorAudiobookFoldersStore
+      FolderType.Remote -> error("Remote folder is not stored in AudiobookFolders")
     }
   }
 
   public override suspend fun hasAnyFolders(): Boolean {
-    return FolderType.entries.any {
+    val hasLocalFolders = FolderType.entries.filter { it != FolderType.Remote }.any {
       dataStore(it).data.first().isNotEmpty()
     }
+    val hasRemoteFolder = sftpSettingsProvider.get().remotePath.isNotBlank()
+    return hasLocalFolders || hasRemoteFolder
   }
 }

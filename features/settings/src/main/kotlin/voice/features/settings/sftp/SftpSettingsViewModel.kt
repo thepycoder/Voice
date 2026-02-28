@@ -8,6 +8,7 @@ import dev.zacsweers.metro.Inject
 import kotlinx.coroutines.launch
 import voice.core.common.DispatcherProvider
 import voice.core.common.MainScope
+import voice.core.remote.LibrarySyncManager
 import voice.core.remote.SftpManager
 import voice.core.remote.SftpSettings
 import voice.core.remote.SftpSettingsProvider
@@ -16,6 +17,7 @@ import voice.core.remote.SftpSettingsProvider
 class SftpSettingsViewModel(
   private val sftpSettingsProvider: SftpSettingsProvider,
   private val sftpManager: SftpManager,
+  private val librarySyncManager: LibrarySyncManager,
   dispatcherProvider: DispatcherProvider,
 ) {
   private val scope = MainScope(dispatcherProvider)
@@ -25,10 +27,12 @@ class SftpSettingsViewModel(
   private var user by mutableStateOf("")
   private var password by mutableStateOf("")
   private var remotePath by mutableStateOf("")
+  private var initialSettings: SftpSettings? = null
 
   init {
     scope.launch {
       val settings = sftpSettingsProvider.get()
+      initialSettings = settings
       host = settings.host
       port = settings.port.toString()
       user = settings.user
@@ -93,6 +97,10 @@ class SftpSettingsViewModel(
 
   fun onSave() {
     scope.launch {
+      val current = sftpSettingsProvider.get()
+      if (current.host != initialSettings?.host || current.remotePath != initialSettings?.remotePath) {
+        librarySyncManager.clearAll()
+      }
       testMessage = null
     }
   }

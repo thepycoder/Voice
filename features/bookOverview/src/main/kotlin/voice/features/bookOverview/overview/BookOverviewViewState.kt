@@ -17,7 +17,6 @@ data class BookOverviewViewState(
   val searchViewState: BookSearchViewState,
   val showStoragePermissionBugCard: Boolean,
   val showFolderPickerIcon: Boolean,
-  val remoteBooks: List<RemoteBookItemViewState>,
 ) {
 
   companion object {
@@ -36,7 +35,6 @@ data class BookOverviewViewState(
       ),
       showStoragePermissionBugCard = false,
       showFolderPickerIcon = true,
-      remoteBooks = emptyList(),
     )
   }
 

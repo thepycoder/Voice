@@ -116,6 +116,13 @@ public class LibrarySyncManager(
     }
   }
 
+  public suspend fun clearAll(): Unit = withContext(Dispatchers.IO) {
+    Logger.i("Clearing all remote data")
+    catalogRepo.setBooks(emptyList())
+    File(application.filesDir, RemotePaths.DOWNLOADS_DIR).deleteRecursively()
+    File(application.filesDir, RemotePaths.COVERS_DIR).deleteRecursively()
+  }
+
   public sealed class SyncResult {
     public data class Success(val newBooks: Int) : SyncResult()
     public data class Error(val message: String) : SyncResult()
