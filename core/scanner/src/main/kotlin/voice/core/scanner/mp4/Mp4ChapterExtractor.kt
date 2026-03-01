@@ -3,8 +3,10 @@ package voice.core.scanner.mp4
 import android.content.Context
 import android.net.Uri
 import androidx.media3.common.C
+import androidx.media3.datasource.DataSource
 import androidx.media3.datasource.DataSpec
 import androidx.media3.datasource.DefaultDataSource
+import androidx.media3.datasource.FileDataSource
 import androidx.media3.extractor.DefaultExtractorInput
 import dev.zacsweers.metro.Inject
 import kotlinx.coroutines.Dispatchers
@@ -21,7 +23,11 @@ internal class Mp4ChapterExtractor(
 ) {
 
   suspend fun extractChapters(uri: Uri): List<MarkData> = withContext(Dispatchers.IO) {
-    val dataSource = DefaultDataSource.Factory(context).createDataSource()
+    val dataSource: DataSource = if (uri.scheme == "file") {
+      FileDataSource()
+    } else {
+      DefaultDataSource.Factory(context).createDataSource()
+    }
 
     try {
       dataSource.open(DataSpec(uri))
