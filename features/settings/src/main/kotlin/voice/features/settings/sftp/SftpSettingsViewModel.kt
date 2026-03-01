@@ -98,8 +98,13 @@ class SftpSettingsViewModel(
   fun onSave() {
     scope.launch {
       val current = sftpSettingsProvider.get()
-      if (current.host != initialSettings?.host || current.remotePath != initialSettings?.remotePath) {
+      val hostChanged = current.host != initialSettings?.host
+      val remotePathChanged = current.remotePath != initialSettings?.remotePath
+      if (hostChanged || remotePathChanged) {
         librarySyncManager.clearAll()
+      }
+      if (current.remotePath.isNotBlank() && current.host.isNotBlank()) {
+        librarySyncManager.sync().let { }
       }
       testMessage = null
     }

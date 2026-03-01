@@ -80,13 +80,11 @@ class BookOverviewViewModel(
   private var searchActive by mutableStateOf(false)
   private var query by mutableStateOf("")
   private var isRefreshing by mutableStateOf(false)
-  private var hasRemoteConfigured by mutableStateOf(false)
 
   fun attach() {
     scope.launch {
       val settings = sftpSettingsProvider.get()
-      hasRemoteConfigured = settings.remotePath.isNotBlank()
-      if (!hasRemoteConfigured) {
+      if (settings.remotePath.isBlank()) {
         librarySyncManager.clearAll()
       }
       mediaScanner.scan()
@@ -116,6 +114,9 @@ class BookOverviewViewModel(
       .collectAsState(initial = DownloadState.Idle).value
     val syncState = remember { librarySyncManager.syncState }
       .collectAsState(initial = SyncState.Idle).value
+    val sftpSettings = remember { sftpSettingsProvider.flow() }
+      .collectAsState(initial = null).value
+    val hasRemoteConfigured = sftpSettings?.remotePath?.isNotBlank() == true
 
     val downloadsPath = File(application.filesDir, RemotePaths.DOWNLOADS_DIR).absolutePath
     val downloadedRemoteIds = contentList
@@ -132,7 +133,7 @@ class BookOverviewViewModel(
         )
       }
 
-    val noBooks = !scannerActive && booksList.isEmpty() && remoteBookViewStates.isEmpty()
+    val noBooks = !scannerActive && booksList.isEmpty() && remoteBookViewStates.isEmpty() && !hasRemoteConfigured
 
     val layoutMode = when (gridMode) {
       GridMode.LIST -> BookOverviewLayoutMode.List
@@ -299,14 +300,18 @@ class BookOverviewViewModel(
 
   fun onSyncClick() {
     scope.launch {
-      librarySyncManager.sync().let { }
+      val settings = sftpSettingsProvider.get()
+      if (settings.remotePath.isNotBlank()) {
+        librarySyncManager.sync().let { }
+      }
     }
   }
 
   fun onRefresh() {
     scope.launch {
       isRefreshing = true
-      if (hasRemoteConfigured) {
+      val settings = sftpSettingsProvider.get()
+      if (settings.remotePath.isNotBlank()) {
         librarySyncManager.sync().let { }
       }
       mediaScanner.scanAndAwait()

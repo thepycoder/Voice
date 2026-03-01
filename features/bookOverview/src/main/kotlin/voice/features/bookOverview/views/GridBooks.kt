@@ -14,13 +14,18 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.windowInsetsBottomHeight
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.CloudDownload
+import androidx.compose.material.icons.outlined.CloudDone
 import androidx.compose.material3.ElevatedCard
+import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -166,18 +171,20 @@ internal fun GridBook(
       Spacer(Modifier.height(8.dp))
       when (val remote = book.remoteState) {
         is RemoteBookState.NotDownloaded -> {
-          Text(
-            text = "Tap to download",
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.primary,
+          RemoteBadge(
+            icon = Icons.Outlined.CloudDownload,
+            text = "Remote",
+            containerColor = MaterialTheme.colorScheme.primaryContainer,
+            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
           )
         }
         is RemoteBookState.Downloading -> {
           Column {
-            Text(
-              text = if (remote.progress > 0f) "Downloading…" else "Starting download…",
-              style = MaterialTheme.typography.labelSmall,
-              color = MaterialTheme.colorScheme.primary,
+            RemoteBadge(
+              icon = Icons.Outlined.CloudDownload,
+              text = "${(remote.progress * 100).toInt()}%",
+              containerColor = MaterialTheme.colorScheme.primaryContainer,
+              contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
             )
             Spacer(Modifier.height(4.dp))
             LinearProgressIndicator(
@@ -187,14 +194,14 @@ internal fun GridBook(
           }
         }
         is RemoteBookState.Downloaded -> {
-          Text(
+          RemoteBadge(
+            icon = Icons.Outlined.CloudDone,
             text = "Downloaded",
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.secondary,
+            containerColor = MaterialTheme.colorScheme.secondaryContainer,
+            contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
           )
         }
         null -> {
-          // Show normal progress for local/downloaded books
           if (book.progress > 0.05) {
             LinearProgressIndicator(
               progress = { book.progress },
@@ -204,6 +211,34 @@ internal fun GridBook(
         }
       }
     }
+  }
+}
+
+@Composable
+private fun RemoteBadge(
+  icon: androidx.compose.ui.graphics.vector.ImageVector,
+  text: String,
+  containerColor: androidx.compose.ui.graphics.Color,
+  contentColor: androidx.compose.ui.graphics.Color,
+) {
+  Row(
+    modifier = Modifier
+      .background(containerColor, MaterialTheme.shapes.small)
+      .padding(horizontal = 8.dp, vertical = 4.dp),
+    verticalAlignment = Alignment.CenterVertically,
+    horizontalArrangement = Arrangement.spacedBy(4.dp),
+  ) {
+    Icon(
+      imageVector = icon,
+      contentDescription = null,
+      modifier = Modifier.size(14.dp),
+      tint = contentColor,
+    )
+    Text(
+      text = text,
+      style = MaterialTheme.typography.labelSmall,
+      color = contentColor,
+    )
   }
 }
 

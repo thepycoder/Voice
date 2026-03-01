@@ -17,7 +17,11 @@ import androidx.compose.foundation.layout.windowInsetsBottomHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.CloudDownload
+import androidx.compose.material.icons.outlined.CloudDone
 import androidx.compose.material3.ElevatedCard
+import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -105,11 +109,13 @@ internal fun ListBookRow(
         onLongClick = { onBookLongClick(book.id) },
       ),
   ) {
-    Column(Modifier.padding()) {
-      Row(verticalAlignment = Alignment.CenterVertically) {
-        CoverImage(book.cover)
+    Row(
+      modifier = Modifier.padding(),
+      verticalAlignment = Alignment.CenterVertically,
+    ) {
+      CoverImage(book.cover)
 
-        Column(
+      Column(
           Modifier
             .padding(start = 12.dp)
             .weight(1f),
@@ -151,60 +157,92 @@ internal fun ListBookRow(
               )
             }
           }
-        }
-      }
 
-      when (val remote = book.remoteState) {
-        is RemoteBookState.NotDownloaded -> {
-          Text(
-            text = "Tap to download",
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.padding(start = 12.dp, bottom = 8.dp),
-          )
-        }
-        is RemoteBookState.Downloading -> {
-          Column(Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
-            Text(
-              text = if (remote.progress > 0f) "Downloading…" else "Starting download…",
-              style = MaterialTheme.typography.labelSmall,
-              color = MaterialTheme.colorScheme.primary,
-            )
-            Spacer(Modifier.height(4.dp))
-            LinearProgressIndicator(
-              progress = { remote.progress },
-              modifier = Modifier
-                .fillMaxWidth()
-                .clip(MaterialTheme.shapes.small)
-                .height(4.dp),
-              color = MaterialTheme.colorScheme.primary,
-              trackColor = MaterialTheme.colorScheme.surfaceVariant,
-            )
+          when (val remote = book.remoteState) {
+            is RemoteBookState.NotDownloaded -> {
+              Spacer(Modifier.height(4.dp))
+              RemoteBadge(
+                icon = Icons.Outlined.CloudDownload,
+                text = "Remote",
+                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+              )
+            }
+            is RemoteBookState.Downloading -> {
+              Spacer(Modifier.height(4.dp))
+              RemoteBadge(
+                icon = Icons.Outlined.CloudDownload,
+                text = "${(remote.progress * 100).toInt()}%",
+                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+              )
+              Spacer(Modifier.height(4.dp))
+              LinearProgressIndicator(
+                progress = { remote.progress },
+                modifier = Modifier
+                  .fillMaxWidth()
+                  .padding(end = 12.dp)
+                  .clip(MaterialTheme.shapes.small)
+                  .height(4.dp),
+                color = MaterialTheme.colorScheme.primary,
+                trackColor = MaterialTheme.colorScheme.surfaceVariant,
+              )
+            }
+            is RemoteBookState.Downloaded -> {
+              Spacer(Modifier.height(4.dp))
+              RemoteBadge(
+                icon = Icons.Outlined.CloudDone,
+                text = "Downloaded",
+                containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+              )
+            }
+            null -> {
+              if (book.progress > 0.05f) {
+                LinearProgressIndicator(
+                  progress = { book.progress },
+                  modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(end = 12.dp)
+                    .clip(MaterialTheme.shapes.small)
+                    .height(4.dp),
+                  color = MaterialTheme.colorScheme.primary,
+                  trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                )
+              }
+            }
           }
         }
-        is RemoteBookState.Downloaded -> {
-          Text(
-            text = "Downloaded",
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.secondary,
-            modifier = Modifier.padding(start = 12.dp, bottom = 8.dp),
-          )
-        }
-        null -> {
-          if (book.progress > 0.05f) {
-            LinearProgressIndicator(
-              progress = { book.progress },
-              modifier = Modifier
-                .fillMaxWidth()
-                .clip(MaterialTheme.shapes.small)
-                .height(4.dp),
-              color = MaterialTheme.colorScheme.primary,
-              trackColor = MaterialTheme.colorScheme.surfaceVariant,
-            )
-          }
-        }
-      }
     }
+  }
+}
+
+@Composable
+private fun RemoteBadge(
+  icon: androidx.compose.ui.graphics.vector.ImageVector,
+  text: String,
+  containerColor: androidx.compose.ui.graphics.Color,
+  contentColor: androidx.compose.ui.graphics.Color,
+  modifier: Modifier = Modifier,
+) {
+  Row(
+    modifier = modifier
+      .background(containerColor, MaterialTheme.shapes.small)
+      .padding(horizontal = 8.dp, vertical = 4.dp),
+    verticalAlignment = Alignment.CenterVertically,
+    horizontalArrangement = Arrangement.spacedBy(4.dp),
+  ) {
+    Icon(
+      imageVector = icon,
+      contentDescription = null,
+      modifier = Modifier.size(14.dp),
+      tint = contentColor,
+    )
+    Text(
+      text = text,
+      style = MaterialTheme.typography.labelSmall,
+      color = contentColor,
+    )
   }
 }
 

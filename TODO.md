@@ -6,6 +6,8 @@
 - [x] Deleting a downloaded audibook should revert to the remote book card. Instead, now after a delete the book isn't visible at all anymore
 - [x] Don't sync remotes every time you go to the overview. Manual trigger is enough.
 - [x] Mild ouderschap is an example of a book that still loses its cover art when downloaded
-- [ ] Somehow get metadata from books without downloading them
-- [ ] Allow delete book on remote?
-- [ ] Add a clearer icon or badge to show what books are remote
+- [-] ~~Somehow get metadata from books without downloading them~~ Won't do because way too complex
+- [ ] Current delete book option on long press doesn't work for remote books, so don't show it on remote book
+- [x] Add a clearer icon or badge to show what books are remote
+- [ ] Changing name is not possible on remote books, then just don't show it.
+- [ ] Allow stopping an onging download. Just make sure to remove the temp file from the phone again.

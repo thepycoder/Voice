@@ -41,6 +41,7 @@ import voice.core.remote.LibrarySyncManager
 import voice.core.remote.RemoteBook
 import voice.core.remote.RemoteCatalogRepo
 import voice.core.remote.RemotePaths
+import voice.core.remote.SftpSettings
 import voice.core.remote.SftpSettingsProvider
 import voice.core.remote.SyncState
 import voice.core.scanner.DeviceHasStoragePermissionBug
@@ -92,7 +93,10 @@ class BookOverviewViewModelTest {
   private val downloadManager = mockk<DownloadManager> {
     every { downloadState } returns _downloadState
   }
-  private val sftpSettingsProvider = mockk<SftpSettingsProvider>()
+  private val _sftpSettings = MutableStateFlow(SftpSettings())
+  private val sftpSettingsProvider = mockk<SftpSettingsProvider> {
+    every { flow() } returns _sftpSettings
+  }
 
   private val viewModel by lazy {
     BookOverviewViewModel(
