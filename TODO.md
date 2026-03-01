@@ -5,3 +5,7 @@
 - [x] Remote folder edit and remove icons overlap
 - [x] Deleting a downloaded audibook should revert to the remote book card. Instead, now after a delete the book isn't visible at all anymore
 - [x] Don't sync remotes every time you go to the overview. Manual trigger is enough.
+- [x] Mild ouderschap is an example of a book that still loses its cover art when downloaded
+- [ ] Somehow get metadata from books without downloading them
+- [ ] Allow delete book on remote?
+- [ ] Add a clearer icon or badge to show what books are remote
