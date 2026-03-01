@@ -2,6 +2,8 @@
 
 Voice is a minimal, user‑focused audiobook player for Android, built for reliability and minimalism.
 
+**This is a greenfield project** — no backward compatibility is required for serialized data or schema changes. If data model changes cause crashes, clearing app data is acceptable.
+
 ## Architecture
 
 The project architecture and gradle module structure is defined in [the Architecture Docs](docs/architecture.md)
@@ -12,6 +14,26 @@ The project architecture and gradle module structure is defined in [the Architec
 - Run all tests `./gradlew voiceUnitTest`
 - Run tests of a module: `./gradlew :<moduleName>:testDebugUnitTest`
 - Create and register a new gradle module: `./scripts/new_module.kts :features:<name>`
+
+## On-Device Debugging
+
+App package: `de.ph1b.audiobook.repo`  
+Main activity: `voice.app.features.MainActivity`
+
+**Get crash logs:**
+```bash
+adb logcat -d | grep -E "audiobook|voice\.app|FATAL|AndroidRuntime" | tail -100
+```
+
+**Launch the app:**
+```bash
+adb shell am start -n de.ph1b.audiobook.repo/voice.app.features.MainActivity
+```
+
+**Clear app data (useful for serialization/schema change crashes):**
+```bash
+adb shell pm clear de.ph1b.audiobook.repo
+```
 
 ## Testing Conventions
 
