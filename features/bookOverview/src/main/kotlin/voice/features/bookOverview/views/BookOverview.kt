@@ -6,9 +6,11 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -17,6 +19,7 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -136,6 +139,8 @@ fun BookOverviewScreen(modifier: Modifier = Modifier) {
     onSearchQueryChange = bookOverviewViewModel::onSearchQueryChange,
     onSearchBookClick = bookOverviewViewModel::onSearchBookClick,
     onPermissionBugCardClick = bookOverviewViewModel::onPermissionBugCardClick,
+    onSyncClick = bookOverviewViewModel::onSyncClick,
+    onRefresh = bookOverviewViewModel::onRefresh,
   )
   val deleteBookViewState = deleteBookViewModel.state.value
   if (deleteBookViewState != null) {
@@ -186,6 +191,7 @@ fun BookOverviewScreen(modifier: Modifier = Modifier) {
   }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun BookOverview(
   viewState: BookOverviewViewState,
@@ -199,6 +205,8 @@ internal fun BookOverview(
   onSearchQueryChange: (String) -> Unit,
   onSearchBookClick: (BookId) -> Unit,
   onPermissionBugCardClick: () -> Unit,
+  onSyncClick: () -> Unit,
+  onRefresh: () -> Unit,
   modifier: Modifier = Modifier,
 ) {
   val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
@@ -210,6 +218,7 @@ internal fun BookOverview(
         viewState = viewState,
         onBookFolderClick = onBookFolderClick,
         onSettingsClick = onSettingsClick,
+        onSyncClick = onSyncClick,
         onActiveChange = onSearchActiveChange,
         onQueryChange = onSearchQueryChange,
         onSearchBookClick = onSearchBookClick,
@@ -228,47 +237,52 @@ internal fun BookOverview(
     },
     contentWindowInsets = WindowInsets(0, 0, 0, 0),
   ) { contentPadding ->
-    Column(
-      Modifier
+    PullToRefreshBox(
+      isRefreshing = viewState.isRefreshing,
+      onRefresh = onRefresh,
+      modifier = Modifier
         .padding(contentPadding)
-        .consumeWindowInsets(contentPadding),
+        .consumeWindowInsets(contentPadding)
+        .fillMaxSize(),
     ) {
-      when (val sync = viewState.syncState) {
-        is SyncState.Syncing -> {
-          Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
-            Text(
-              text = sync.message,
-              style = MaterialTheme.typography.labelSmall,
-              color = MaterialTheme.colorScheme.primary,
-              modifier = Modifier.padding(bottom = 4.dp),
-            )
-            LinearProgressIndicator(
-              modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 4.dp),
+      Column {
+        when (val sync = viewState.syncState) {
+          is SyncState.Syncing -> {
+            Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+              Text(
+                text = sync.message,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(bottom = 4.dp),
+              )
+              LinearProgressIndicator(
+                modifier = Modifier
+                  .fillMaxWidth()
+                  .padding(top = 4.dp),
+              )
+            }
+          }
+          else -> {}
+        }
+        when (viewState.layoutMode) {
+          BookOverviewLayoutMode.List -> {
+            ListBooks(
+              books = viewState.books,
+              onBookClick = onBookClick,
+              onBookLongClick = onBookLongClick,
+              showPermissionBugCard = viewState.showStoragePermissionBugCard,
+              onPermissionBugCardClick = onPermissionBugCardClick,
             )
           }
-        }
-        else -> {}
-      }
-      when (viewState.layoutMode) {
-        BookOverviewLayoutMode.List -> {
-          ListBooks(
-            books = viewState.books,
-            onBookClick = onBookClick,
-            onBookLongClick = onBookLongClick,
-            showPermissionBugCard = viewState.showStoragePermissionBugCard,
-            onPermissionBugCardClick = onPermissionBugCardClick,
-          )
-        }
-        BookOverviewLayoutMode.Grid -> {
-          GridBooks(
-            books = viewState.books,
-            onBookClick = onBookClick,
-            onBookLongClick = onBookLongClick,
-            showPermissionBugCard = viewState.showStoragePermissionBugCard,
-            onPermissionBugCardClick = onPermissionBugCardClick,
-          )
+          BookOverviewLayoutMode.Grid -> {
+            GridBooks(
+              books = viewState.books,
+              onBookClick = onBookClick,
+              onBookLongClick = onBookLongClick,
+              showPermissionBugCard = viewState.showStoragePermissionBugCard,
+              onPermissionBugCardClick = onPermissionBugCardClick,
+            )
+          }
         }
       }
     }
@@ -295,6 +309,8 @@ fun BookOverviewPreview(
       onSearchQueryChange = {},
       onSearchBookClick = {},
       onPermissionBugCardClick = {},
+      onSyncClick = {},
+      onRefresh = {},
     )
   }
 }

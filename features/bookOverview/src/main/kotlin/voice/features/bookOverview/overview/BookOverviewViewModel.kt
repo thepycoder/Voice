@@ -79,13 +79,14 @@ class BookOverviewViewModel(
   private val scope = MainScope()
   private var searchActive by mutableStateOf(false)
   private var query by mutableStateOf("")
+  private var isRefreshing by mutableStateOf(false)
+  private var hasRemoteConfigured by mutableStateOf(false)
 
   fun attach() {
     scope.launch {
       val settings = sftpSettingsProvider.get()
-      if (settings.remotePath.isNotBlank()) {
-        librarySyncManager.sync().let { }
-      } else {
+      hasRemoteConfigured = settings.remotePath.isNotBlank()
+      if (!hasRemoteConfigured) {
         librarySyncManager.clearAll()
       }
       mediaScanner.scan()
@@ -183,6 +184,8 @@ class BookOverviewViewModel(
       showStoragePermissionBugCard = hasStoragePermissionBug,
       showFolderPickerIcon = !folderPickerInSettingsFeatureFlag.get(),
       syncState = syncState,
+      showSyncIcon = hasRemoteConfigured,
+      isRefreshing = isRefreshing,
     )
   }
 
@@ -292,6 +295,23 @@ class BookOverviewViewModel(
 
   fun onSyncStateDismissed() {
     librarySyncManager.clearSyncState()
+  }
+
+  fun onSyncClick() {
+    scope.launch {
+      librarySyncManager.sync().let { }
+    }
+  }
+
+  fun onRefresh() {
+    scope.launch {
+      isRefreshing = true
+      if (hasRemoteConfigured) {
+        librarySyncManager.sync().let { }
+      }
+      mediaScanner.scanAndAwait()
+      isRefreshing = false
+    }
   }
 
   private fun getRemoteCoverFile(remoteBook: RemoteBook): File? {

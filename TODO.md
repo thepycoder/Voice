@@ -4,3 +4,4 @@
 - [x] Downloaded book does not have chapters?
 - [x] Remote folder edit and remove icons overlap
 - [x] Deleting a downloaded audibook should revert to the remote book card. Instead, now after a delete the book isn't visible at all anymore
+- [x] Don't sync remotes every time you go to the overview. Manual trigger is enough.

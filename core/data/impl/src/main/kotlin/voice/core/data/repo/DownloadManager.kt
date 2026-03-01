@@ -81,6 +81,13 @@ public class DownloadManagerImpl(
         }
       }
 
+      val coversDir = File(application.filesDir, RemotePaths.COVERS_DIR)
+      val remoteCoverFile = File(coversDir, "${book.id}.jpg")
+      if (remoteCoverFile.exists()) {
+        val localCoverFile = File(bookDir, "cover.jpg")
+        remoteCoverFile.copyTo(localCoverFile, overwrite = true)
+      }
+
       mediaScanTrigger.scanAndAwait(restartIfScanning = true)
 
       setRemoteBookIdAfterDownload(book.id)

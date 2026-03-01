@@ -19,6 +19,8 @@ data class BookOverviewViewState(
   val showStoragePermissionBugCard: Boolean,
   val showFolderPickerIcon: Boolean,
   val syncState: SyncState = SyncState.Idle,
+  val showSyncIcon: Boolean = false,
+  val isRefreshing: Boolean = false,
 ) {
 
   companion object {
@@ -38,6 +40,8 @@ data class BookOverviewViewState(
       showStoragePermissionBugCard = false,
       showFolderPickerIcon = true,
       syncState = SyncState.Idle,
+      showSyncIcon = false,
+      isRefreshing = false,
     )
   }
 
