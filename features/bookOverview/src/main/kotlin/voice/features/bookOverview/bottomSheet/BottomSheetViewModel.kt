@@ -8,6 +8,7 @@ import kotlinx.coroutines.launch
 import voice.core.data.BookId
 import voice.core.data.repo.BookContentRepo
 import voice.core.remote.DownloadManager
+import voice.core.remote.DownloadState
 import voice.core.remote.RemoteBook
 import voice.core.remote.RemoteCatalogRepo
 import voice.core.remote.RemotePaths
@@ -88,6 +89,13 @@ class BottomSheetViewModel(
     val contentList = contentRepo.flow().first()
     val downloadsPath = File(application.filesDir, RemotePaths.DOWNLOADS_DIR).absolutePath
 
+    val downloadState = downloadManager.downloadState.value
+    val isDownloading = downloadState is DownloadState.Downloading && downloadState.remoteBookId == remoteId
+
+    if (isDownloading) {
+      return EditBookBottomSheetState(listOf(BottomSheetItem.CancelDownload))
+    }
+
     if (book == null) {
       val downloadDir = File(application.filesDir, RemotePaths.DOWNLOADS_DIR).resolve(remoteId)
       if (downloadDir.exists()) {
@@ -115,6 +123,11 @@ class BottomSheetViewModel(
       scope.launch {
         handleDownloadAction(bookId, item)
       }
+      return
+    }
+
+    if (item == BottomSheetItem.CancelDownload) {
+      downloadManager.cancelDownload()
       return
     }
 

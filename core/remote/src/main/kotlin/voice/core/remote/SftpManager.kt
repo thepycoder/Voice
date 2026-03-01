@@ -118,6 +118,8 @@ public class SftpManager(
             remoteFile.close()
           }
         }
+      } catch (e: java.util.concurrent.CancellationException) {
+        throw e
       } catch (e: Exception) {
         Logger.e(e, "Failed to download $remotePath")
         throw RuntimeException("Failed to download file '$remotePath'. Original error: ${e.message}", e)

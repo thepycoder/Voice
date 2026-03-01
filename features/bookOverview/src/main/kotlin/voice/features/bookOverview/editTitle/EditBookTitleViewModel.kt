@@ -21,6 +21,9 @@ class EditBookTitleViewModel(private val repo: BookRepository) : BottomSheetItem
   internal val state: State<EditBookTitleState?> get() = _state
 
   override suspend fun items(bookId: BookId): List<BottomSheetItem> {
+    if (bookId.value.startsWith("remote://")) {
+      return emptyList()
+    }
     return listOf(BottomSheetItem.Title)
   }
 

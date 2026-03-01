@@ -9,4 +9,6 @@ public interface DownloadManager {
   public suspend fun downloadBook(book: RemoteBook): Result<Unit>
 
   public suspend fun removeBook(book: RemoteBook): Result<Unit>
+
+  public fun cancelDownload()
 }

@@ -59,14 +59,19 @@ public class LibrarySyncManager(
         }
       }
 
-      val currentBooks = catalogRepo.flow().first().associateBy { it.id }.toMutableMap()
+      val existingBooks = catalogRepo.flow().first().associateBy { it.id }
+      val remoteFolderSet = remoteFolders.toSet()
+      val currentBooks = existingBooks.filterKeys { it in remoteFolderSet }.toMutableMap()
       var newBooksCount = 0
       val coversDir = File(application.filesDir, RemotePaths.COVERS_DIR).apply { mkdirs() }
 
       for (folder in remoteFolders) {
         emitProgress("Processing: $folder")
 
-        if (currentBooks.containsKey(folder)) continue
+        if (existingBooks.containsKey(folder)) {
+          currentBooks[folder] = existingBooks[folder]!!
+          continue
+        }
 
         try {
           val remotePath = "${settings.remotePath}/$folder"

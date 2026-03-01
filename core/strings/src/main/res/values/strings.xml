@@ -60,6 +60,7 @@
     <string name="add">Add</string>
     <string name="download">Download</string>
     <string name="remove_download">Remove download</string>
+    <string name="cancel_download">Cancel download</string>
     <string name="folder_mode_root">Top-Level Book Mode: Subfolders are books</string>
     <string name="folder_mode_single">Single Book Mode: One folder equals one book.</string>
     <string name="folder_mode_author">Author-Book Mode: Subfolders are authors, sub-subfolders are books.</string>

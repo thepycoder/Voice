@@ -23,6 +23,7 @@ import voice.core.remote.SftpManager
 import voice.core.remote.SftpSettingsProvider
 import voice.core.scanner.MediaScanTrigger
 import java.io.File
+import java.util.concurrent.CancellationException
 
 @SingleIn(AppScope::class)
 @Inject
@@ -41,6 +42,11 @@ public class DownloadManagerImpl(
   private val _downloadState = MutableStateFlow<DownloadState>(DownloadState.Idle)
   override val downloadState: StateFlow<DownloadState> = _downloadState
 
+  @Volatile
+  private var cancelRequested = false
+  private var currentDownloadFile: File? = null
+  private var currentDownloadBookId: String? = null
+
   init {
     createNotificationChannel()
   }
@@ -49,6 +55,9 @@ public class DownloadManagerImpl(
     val m4bFileName = book.m4bFileName
       ?: return@withContext Result.failure(IllegalArgumentException("No m4b file specified"))
 
+    cancelRequested = false
+    currentDownloadBookId = book.id
+
     try {
       _downloadState.value = DownloadState.Downloading(book.id, 0f)
       val settings = settingsProvider.get()
@@ -56,12 +65,16 @@ public class DownloadManagerImpl(
       val downloadsDir = File(application.filesDir, RemotePaths.DOWNLOADS_DIR).apply { mkdirs() }
       val bookDir = File(downloadsDir, book.id).apply { mkdirs() }
       val localFile = File(bookDir, m4bFileName)
+      currentDownloadFile = localFile
 
       val notificationId = book.id.hashCode()
       sftpManager.downloadFile(
         remotePath = remotePath,
         localFile = localFile,
         onProgress = { bytesRead, totalBytes ->
+          if (cancelRequested) {
+            throw CancellationException("Download cancelled by user")
+          }
           val progress = if (totalBytes > 0) bytesRead.toFloat() / totalBytes else 0f
           _downloadState.value = DownloadState.Downloading(book.id, progress)
           notificationManager.notify(
@@ -70,6 +83,10 @@ public class DownloadManagerImpl(
           )
         },
       )
+
+      if (cancelRequested) {
+        throw CancellationException("Download cancelled by user")
+      }
 
       if (book.hasPdf) {
         try {
@@ -88,17 +105,45 @@ public class DownloadManagerImpl(
         remoteCoverFile.copyTo(localCoverFile, overwrite = true)
       }
 
+      localFile.setLastModified(System.currentTimeMillis())
+
       mediaScanTrigger.scanAndAwait(restartIfScanning = true)
 
       setRemoteBookIdAfterDownload(book.id)
 
       _downloadState.value = DownloadState.Complete(book.id)
       notificationManager.notify(notificationId, createCompleteNotification(book.title))
+      currentDownloadFile = null
+      currentDownloadBookId = null
       Result.success(Unit)
+    } catch (e: CancellationException) {
+      Logger.i("Download cancelled for ${book.id}")
+      cleanupCancelledDownload(book.id)
+      notificationManager.cancel(book.id.hashCode())
+      _downloadState.value = DownloadState.Cancelled(book.id)
+      currentDownloadFile = null
+      currentDownloadBookId = null
+      Result.failure(e)
     } catch (e: Exception) {
       Logger.e(e, "Download failed for ${book.id}")
       _downloadState.value = DownloadState.Error(book.id, e.message ?: "Unknown error")
+      currentDownloadFile = null
+      currentDownloadBookId = null
       Result.failure(e)
+    }
+  }
+
+  override fun cancelDownload() {
+    val bookId = currentDownloadBookId ?: return
+    Logger.i("Cancel requested for download: $bookId")
+    cancelRequested = true
+  }
+
+  private fun cleanupCancelledDownload(bookId: String) {
+    val bookDir = File(application.filesDir, RemotePaths.DOWNLOADS_DIR).resolve(bookId)
+    if (bookDir.exists()) {
+      bookDir.deleteRecursively()
+      Logger.i("Cleaned up cancelled download directory: ${bookDir.absolutePath}")
     }
   }
 

@@ -27,6 +27,9 @@ class DeleteBookViewModel(
   internal val state: State<DeleteBookViewState?> get() = _state
 
   override suspend fun items(bookId: BookId): List<BottomSheetItem> {
+    if (bookId.value.startsWith("remote://")) {
+      return emptyList()
+    }
     return listOf(BottomSheetItem.DeleteBook)
   }
 

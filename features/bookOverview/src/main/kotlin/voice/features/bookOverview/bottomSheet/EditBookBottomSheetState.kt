@@ -8,6 +8,7 @@ import androidx.compose.material.icons.outlined.Download
 import androidx.compose.material.icons.outlined.HourglassEmpty
 import androidx.compose.material.icons.outlined.Image
 import androidx.compose.material.icons.outlined.NotStarted
+import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.RemoveCircleOutline
 import androidx.compose.material.icons.outlined.Title
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -28,4 +29,5 @@ enum class BottomSheetItem(
   BookCategoryMarkAsCompleted(StringsR.string.mark_as_completed, Icons.Outlined.Done),
   Download(StringsR.string.download, Icons.Outlined.Download),
   RemoveDownload(StringsR.string.remove_download, Icons.Outlined.RemoveCircleOutline),
+  CancelDownload(StringsR.string.cancel_download, Icons.Outlined.Close),
 }

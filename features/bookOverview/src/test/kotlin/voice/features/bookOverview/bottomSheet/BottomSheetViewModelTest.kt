@@ -10,6 +10,7 @@ import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -22,6 +23,7 @@ import org.robolectric.RobolectricTestRunner
 import voice.core.data.BookContent
 import voice.core.data.BookId
 import voice.core.remote.DownloadManager
+import voice.core.remote.DownloadState
 import voice.core.remote.RemoteBook
 import voice.core.remote.RemoteCatalogRepo
 import voice.core.remote.RemotePaths
@@ -46,7 +48,10 @@ class BottomSheetViewModelTest {
   private val internetCoverViewModel = mockk<InternetCoverViewModel>()
   private val remoteCatalogRepo = mockk<RemoteCatalogRepo>()
   private val contentRepo = mockk<BookContentRepo>()
-  private val downloadManager = mockk<DownloadManager>()
+  private val downloadStateFlow = MutableStateFlow<DownloadState>(DownloadState.Idle)
+  private val downloadManager = mockk<DownloadManager> {
+    every { downloadState } returns downloadStateFlow
+  }
 
   init {
     coEvery { deleteBookViewModel.items(any()) } returns emptyList()
