@@ -4,6 +4,7 @@ package voice.core.remote
 
 import dev.zacsweers.metro.Inject
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import net.schmizz.sshj.DefaultConfig
 import net.schmizz.sshj.SSHClient
@@ -11,6 +12,19 @@ import net.schmizz.sshj.sftp.SFTPClient
 import net.schmizz.sshj.transport.verification.PromiscuousVerifier
 import voice.core.logging.api.Logger
 import java.io.File
+import java.net.ConnectException
+import java.net.SocketException
+
+private const val CONNECT_TIMEOUT_MS = 30_000
+private const val SOCKET_TIMEOUT_MS = 60_000
+private const val RETRY_DELAY_MS = 500L
+private const val MAX_ATTEMPTS = 3
+
+private fun isConnectionError(e: Throwable): Boolean {
+  if (e is SocketException || e is ConnectException) return true
+  val msg = e.message?.uppercase() ?: return false
+  return "ECONNABORTED" in msg || "ECONNRESET" in msg
+}
 
 @Inject
 public class SftpManager(
@@ -18,11 +32,11 @@ public class SftpManager(
 ) {
 
   private fun createSshClient(): SSHClient {
-    // Ensure security providers are set up before creating SSHClient,
-    // as DefaultConfig checks for BouncyCastle during construction.
     SshSecurityProviderInitializer.setupBouncyCastle()
     return SSHClient(DefaultConfig()).apply {
       addHostKeyVerifier(PromiscuousVerifier())
+      setConnectTimeout(CONNECT_TIMEOUT_MS)
+      setTimeout(SOCKET_TIMEOUT_MS)
     }
   }
 
@@ -74,7 +88,15 @@ public class SftpManager(
         withSftpClient { sftp ->
           sftp.ls(remotePath)
             .filter { it.isRegularFile }
-            .map { SftpFile(it.name, it.attributes.size) }
+            .map {
+              val attrs = it.attributes
+              val mtime = try {
+                attrs.mtime
+              } catch (_: Exception) {
+                0L
+              }
+              SftpFile(it.name, attrs.size, mtime)
+            }
         }
       } catch (e: Exception) {
         Logger.e(e, "Failed to list files in $remotePath")
@@ -160,11 +182,28 @@ public class SftpManager(
 
   private suspend fun <T> withSftpClient(block: (SFTPClient) -> T): T {
     val settings = sftpSettings.get()
-
     if (settings.host.isBlank() || settings.user.isBlank()) {
       throw IllegalStateException("SFTP settings not configured")
     }
+    var lastException: Throwable? = null
+    repeat(MAX_ATTEMPTS) { attempt ->
+      try {
+        return withSftpClientOnce(settings, block)
+      } catch (e: java.util.concurrent.CancellationException) {
+        throw e
+      } catch (e: Throwable) {
+        lastException = e
+        if (!isConnectionError(e) || attempt == MAX_ATTEMPTS - 1) {
+          throw e
+        }
+        Logger.w(e, "SFTP connection error (attempt ${attempt + 1}/$MAX_ATTEMPTS), retrying…")
+        delay(RETRY_DELAY_MS)
+      }
+    }
+    throw lastException!!
+  }
 
+  private fun <T> withSftpClientOnce(settings: SftpSettings, block: (SFTPClient) -> T): T {
     val ssh = createSshClient()
     try {
       ssh.connect(settings.host, settings.port)

@@ -312,9 +312,9 @@ class BookOverviewViewModelTest {
       skipItems(1)
       awaitItem().syncState shouldBe SyncState.Idle
 
-      _syncState.value = SyncState.Syncing("Processing: folder1")
+      _syncState.value = SyncState.Syncing("Processing: folder1", 1, 10)
       val state = awaitItem()
-      state.syncState shouldBe SyncState.Syncing("Processing: folder1")
+      state.syncState shouldBe SyncState.Syncing("Processing: folder1", 1, 10)
     }
   }
 }

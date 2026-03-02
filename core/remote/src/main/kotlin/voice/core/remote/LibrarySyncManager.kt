@@ -12,10 +12,23 @@ import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.SingleIn
 import voice.core.logging.api.Logger
 import java.io.File
+import java.security.MessageDigest
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
 private val m4Extensions = setOf("m4b", "m4a", "mp4")
+
+private fun computeContentHash(files: List<SftpFile>): String {
+  val input = files
+    .sortedBy { it.name }
+    .joinToString("|") { "${it.name}:${it.size}:${it.mtime}" }
+  val digest = MessageDigest.getInstance("SHA-256")
+  val hash = digest.digest(input.encodeToByteArray())
+  return hash.joinToString("") { "%02x".format(it) }
+}
+
+private fun metadataComplete(book: RemoteBook): Boolean =
+  book.error == null && book.audioFileName != null
 
 @SingleIn(AppScope::class)
 @Inject
@@ -40,12 +53,6 @@ public class LibrarySyncManager(
         return@withContext SyncResult.Error("Remote path not configured")
       }
 
-      val emitProgress: (String) -> Unit = { msg ->
-        _syncState.value = SyncState.Syncing(msg)
-        onProgress(msg)
-      }
-      emitProgress("Connecting…")
-
       val remoteFolders = try {
         sftpManager.listDirectories(settings.remotePath)
       } catch (e: Exception) {
@@ -62,30 +69,69 @@ public class LibrarySyncManager(
         }
       }
 
+      val total = remoteFolders.size
+      val emitProgress: (String, Int) -> Unit = { msg, current ->
+        _syncState.value = SyncState.Syncing(msg, current, total)
+        onProgress(msg)
+      }
+      emitProgress("Connecting…", 0)
+
       val existingBooks = catalogRepo.flow().first().associateBy { it.id }
       val remoteFolderSet = remoteFolders.toSet()
       val currentBooks = existingBooks.filterKeys { it in remoteFolderSet }.toMutableMap()
       var newBooksCount = 0
       val coversDir = File(application.filesDir, RemotePaths.COVERS_DIR).apply { mkdirs() }
 
-      for (folder in remoteFolders) {
-        emitProgress("Processing: $folder")
+      suspend fun persistCatalog() {
+        catalogRepo.setBooks(currentBooks.values.toList())
+      }
 
-        if (existingBooks.containsKey(folder)) {
-          currentBooks[folder] = existingBooks[folder]!!
+      for ((index, folder) in remoteFolders.withIndex()) {
+        val processedCount = index + 1
+        emitProgress("Processing: $folder", index)
+
+        val remotePath = "${settings.remotePath}/$folder"
+        val files = try {
+          sftpManager.listFiles(remotePath)
+        } catch (e: Exception) {
+          Logger.e(e, "Error listing files for $folder")
+          emitProgress("Error: $folder – ${e.message}", processedCount)
+          val book = RemoteBook(
+            id = folder,
+            folder = folder,
+            title = folder,
+            author = null,
+            durationMs = 0L,
+            hasPdf = false,
+            dateAdded = LocalDateTime.now().format(dateFormatter),
+            coverFileName = null,
+            audioFileName = null,
+            error = e.message ?: "Unknown error",
+            contentHash = null,
+          )
+          currentBooks[folder] = book
+          newBooksCount++
+          persistCatalog()
           continue
         }
 
+        val currentHash = computeContentHash(files)
+        val existingBook = existingBooks[folder]
+
+        if (existingBook != null && existingBook.contentHash == currentHash && metadataComplete(existingBook)) {
+          currentBooks[folder] = existingBook
+          emitProgress("Processing: $folder", processedCount)
+          persistCatalog()
+          continue
+        }
+
+        val audioFile = files.find { it.name.isSupportedAudioFile() }
+        val coverFile = files.find {
+          it.name.endsWith(".jpg", ignoreCase = true) || it.name.endsWith(".jpeg", ignoreCase = true)
+        }
+        val pdfFile = files.find { it.name.endsWith(".pdf", ignoreCase = true) }
+
         try {
-          val remotePath = "${settings.remotePath}/$folder"
-          val files = sftpManager.listFiles(remotePath)
-
-          val audioFile = files.find { it.name.isSupportedAudioFile() }
-          val coverFile = files.find {
-            it.name.endsWith(".jpg", ignoreCase = true) || it.name.endsWith(".jpeg", ignoreCase = true)
-          }
-          val pdfFile = files.find { it.name.endsWith(".pdf", ignoreCase = true) }
-
           if (audioFile == null) {
             val book = RemoteBook(
               id = folder,
@@ -98,9 +144,12 @@ public class LibrarySyncManager(
               coverFileName = coverFile?.name,
               audioFileName = null,
               error = "No audio file found",
+              contentHash = currentHash,
             )
             currentBooks[folder] = book
             newBooksCount++
+            persistCatalog()
+            emitProgress("Processing: $folder", processedCount)
             continue
           }
 
@@ -145,12 +194,14 @@ public class LibrarySyncManager(
             coverFileName = if (coverError != null) null else coverFile?.name,
             audioFileName = audioFile.name,
             error = coverError,
+            contentHash = currentHash,
           )
           currentBooks[folder] = book
           newBooksCount++
+          persistCatalog()
         } catch (e: Exception) {
           Logger.e(e, "Error processing folder $folder")
-          emitProgress("Error: $folder – ${e.message}")
+          emitProgress("Error: $folder – ${e.message}", processedCount)
           val book = RemoteBook(
             id = folder,
             folder = folder,
@@ -162,13 +213,14 @@ public class LibrarySyncManager(
             coverFileName = null,
             audioFileName = null,
             error = e.message ?: "Unknown error",
+            contentHash = currentHash,
           )
           currentBooks[folder] = book
           newBooksCount++
+          persistCatalog()
         }
+        emitProgress("Processing: $folder", processedCount)
       }
-
-      catalogRepo.setBooks(currentBooks.values.toList())
       Logger.i("Remote sync done: $newBooksCount new books")
       _syncState.value = SyncState.Success(newBooksCount)
       SyncResult.Success(newBooksCount)

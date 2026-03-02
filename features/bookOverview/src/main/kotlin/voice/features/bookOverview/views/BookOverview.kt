@@ -255,12 +255,19 @@ internal fun BookOverview(
           is SyncState.Syncing -> {
             Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
               Text(
-                text = sync.message,
+                text = if (sync.total > 0) {
+                  "${sync.message} (${sync.current} / ${sync.total})"
+                } else {
+                  sync.message
+                },
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.padding(bottom = 4.dp),
               )
               LinearProgressIndicator(
+                progress = {
+                  if (sync.total > 0) sync.current.toFloat() / sync.total else 0f
+                },
                 modifier = Modifier
                   .fillMaxWidth()
                   .padding(top = 4.dp),

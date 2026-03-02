@@ -14,6 +14,7 @@ public data class RemoteBook(
   val coverFileName: String? = null,
   val audioFileName: String? = null,
   val error: String?,
+  val contentHash: String? = null,
 )
 
 @Serializable
