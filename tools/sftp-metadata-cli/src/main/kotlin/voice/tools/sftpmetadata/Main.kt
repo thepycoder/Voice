@@ -8,6 +8,7 @@ import com.github.ajalt.clikt.parameters.options.option
 import voice.core.mp4metadata.MoovScanner
 import voice.core.mp4metadata.Mp4MetadataReader
 import java.io.File
+import java.io.RandomAccessFile
 
 fun main(args: Array<String>) = SftpMetadataCli().main(args)
 
@@ -69,21 +70,24 @@ class SftpMetadataCli : CliktCommand(
   private fun runLocal(path: String, log: VerboseLogger) {
     val file = File(path)
     log.sftp("Reading local file: ${file.absolutePath} (${file.length()} bytes)")
-    val data = file.readBytes()
-    if (data.isEmpty()) {
-      log.error("File is empty: $path")
-      throw RuntimeException("Empty file")
+    RandomAccessFile(file, "r").use { raf ->
+      val fileSize = raf.length()
+      if (fileSize == 0L) {
+        log.error("File is empty: $path")
+        throw RuntimeException("Empty file")
+      }
+      val initialSize = MoovScanner.INITIAL_READ_SIZE.toLong().coerceAtMost(fileSize).toInt()
+      val initialData = ByteArray(initialSize).also { raf.readFully(it) }
+      runMetadataExtraction(
+        initialData = initialData,
+        fileSize = fileSize,
+        readBlock = { offset, length ->
+          raf.seek(offset)
+          ByteArray(length).also { raf.readFully(it) }
+        },
+        log = log,
+      )
     }
-    runMetadataExtraction(
-      initialData = data,
-      fileSize = file.length(),
-      readBlock = { offset, length ->
-        val start = offset.toInt()
-        val end = (offset + length).toInt().coerceAtMost(data.size)
-        data.copyOfRange(start, end)
-      },
-      log = log,
-    )
   }
 
   private fun runRemote(
@@ -95,30 +99,29 @@ class SftpMetadataCli : CliktCommand(
     log: VerboseLogger,
   ) {
     val client = SftpClient(host, port, user, password, log)
-    val info = client.stat(remotePath)
-    if (info == null) {
-      log.error("Cannot stat remote file: $remotePath")
-      throw RuntimeException("File not found or not accessible")
-    }
-    val fileSize = info.size
-    log.sftp("Remote file size: $fileSize bytes")
+    client.withSftp { sftp ->
+      val info = client.stat(sftp, remotePath) ?: run {
+        log.error("Cannot stat remote file: $remotePath")
+        throw RuntimeException("File not found or not accessible")
+      }
+      val fileSize = info.size
+      log.sftp("Remote file size: $fileSize bytes")
 
-    val initialSize = MoovScanner.INITIAL_READ_SIZE.toLong().coerceAtMost(fileSize)
-    val initialData = client.partialRead(remotePath, 0L, initialSize.toInt())
-    if (initialData == null || initialData.isEmpty()) {
-      log.error("Failed to read initial $initialSize bytes from $remotePath")
-      throw RuntimeException("Partial read failed")
-    }
-    log.scan("Read ${initialData.size} bytes from start of file")
+      val initialSize = MoovScanner.INITIAL_READ_SIZE.toLong().coerceAtMost(fileSize).toInt()
+      val initialData = client.partialRead(sftp, remotePath, 0L, initialSize)
+      if (initialData.isEmpty()) {
+        log.error("Failed to read initial $initialSize bytes from $remotePath")
+        throw RuntimeException("Partial read failed")
+      }
+      log.scan("Read ${initialData.size} bytes from start of file")
 
-    runMetadataExtraction(
-      initialData = initialData,
-      fileSize = fileSize,
-      readBlock = { offset, length ->
-        client.partialRead(remotePath, offset, length) ?: ByteArray(0)
-      },
-      log = log,
-    )
+      runMetadataExtraction(
+        initialData = initialData,
+        fileSize = fileSize,
+        readBlock = { offset, length -> client.partialRead(sftp, remotePath, offset, length) },
+        log = log,
+      )
+    }
   }
 
   private fun runMetadataExtraction(

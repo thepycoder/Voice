@@ -42,45 +42,41 @@ public class SftpClient(
     }
   }
 
-  public fun stat(remotePath: String): FileInfo? = withSftp { sftp ->
-    try {
+  public fun stat(sftp: SFTPClient, remotePath: String): FileInfo? {
+    return try {
       val attrs = sftp.stat(remotePath)
       val size = attrs.size
       if (size < 0) {
         log.error("Invalid file size or not a regular file: $remotePath")
-        return@withSftp null
+        null
+      } else {
+        FileInfo(size = size)
       }
-      FileInfo(size = size)
     } catch (e: Exception) {
       log.error("File not found or not accessible: $remotePath", e)
       null
     }
   }
 
-  public fun partialRead(remotePath: String, offset: Long, length: Int): ByteArray? = withSftp { sftp ->
+  public fun partialRead(sftp: SFTPClient, remotePath: String, offset: Long, length: Int): ByteArray {
+    val remoteFile = sftp.open(remotePath)
     try {
-      val remoteFile = sftp.open(remotePath)
-      try {
-        val result = ByteArray(length)
-        var totalRead = 0
-        var currentOffset = offset
-        val chunkSize = 64 * 1024
-        while (totalRead < length) {
-          val toRead = (length - totalRead).coerceAtMost(chunkSize)
-          val buffer = ByteArray(toRead)
-          val read = remoteFile.read(currentOffset, buffer, 0, toRead)
-          if (read <= 0) break
-          buffer.copyInto(result, totalRead, 0, read)
-          totalRead += read
-          currentOffset += read
-        }
-        result.copyOf(totalRead)
-      } finally {
-        remoteFile.close()
+      val result = ByteArray(length)
+      var totalRead = 0
+      var currentOffset = offset
+      val chunkSize = 512 * 1024
+      while (totalRead < length) {
+        val toRead = (length - totalRead).coerceAtMost(chunkSize)
+        val buffer = ByteArray(toRead)
+        val read = remoteFile.read(currentOffset, buffer, 0, toRead)
+        if (read <= 0) break
+        buffer.copyInto(result, totalRead, 0, read)
+        totalRead += read
+        currentOffset += read
       }
-    } catch (e: Exception) {
-      log.error("Partial read failed at offset $offset length $length: ${e.message}", e)
-      null
+      return result.copyOf(totalRead)
+    } finally {
+      remoteFile.close()
     }
   }
 
