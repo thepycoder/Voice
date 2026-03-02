@@ -140,7 +140,7 @@ class SftpMetadataCli : CliktCommand(
       moovSize = locationInHead.size
     } else {
       log.scan("moov not found in first ${initialData.size} bytes, scanning from end of file (size=$fileSize)")
-      val tailSize = MoovScanner.INITIAL_READ_SIZE.toLong().coerceAtMost(fileSize)
+      val tailSize = MoovScanner.MAX_MOOV_READ.toLong().coerceAtMost(fileSize)
       val tailStart = (fileSize - tailSize).coerceAtLeast(0L)
       val tailData = readBlock(tailStart, tailSize.toInt())
       if (tailData.isEmpty()) {

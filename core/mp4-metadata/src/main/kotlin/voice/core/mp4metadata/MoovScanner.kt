@@ -50,15 +50,19 @@ public object MoovScanner {
     return null
   }
 
+  private val MOOV_TYPE = "moov".toByteArray(Charsets.ISO_8859_1)
+
   /**
-   * Scans the tail of the file for the last top-level box, which is typically
-   * "moov" when the file is not faststart. [tailData] should be the last
-   * [INITIAL_READ_SIZE] bytes (or less) of the file. [fileSize] is total file size.
-   * Returns the offset and size of the moov box if found.
+   * Scans the tail of the file for the moov box. [tailData] should be the last
+   * N bytes of the file (e.g. [MAX_MOOV_READ]). [tailStart] is the file offset
+   * at which [tailData] begins. Returns the offset and size of the moov box if found.
+   * If the tail does not start at a box boundary (e.g. we're inside mdat), searches
+   * for the "moov" type signature and infers the box from the size field before it.
    */
   public fun findMoovInTail(tailData: ByteArray, fileSize: Long): MoovLocation? {
+    val tailStart = fileSize - tailData.size
     val buffer = ByteBuffer.wrap(tailData).order(ByteOrder.BIG_ENDIAN)
-    var fileOffset = fileSize - tailData.size
+    var fileOffset = tailStart
     while (buffer.remaining() >= 8) {
       val size = buffer.int.toLong() and 0xFFFF_FFFFL
       if (size < 8) break
@@ -80,6 +84,34 @@ public object MoovScanner {
       buffer.position(newPos)
       fileOffset += atomTotalSize
     }
-    return null
+    return findMoovBySignature(tailData, tailStart)
+  }
+
+  /**
+   * Searches for the "moov" box type in [tailData] when the tail does not start
+   * at a box boundary (e.g. we're inside mdat). Uses the last occurrence so we
+   * find the top-level moov.
+   */
+  private fun findMoovBySignature(tailData: ByteArray, tailStart: Long): MoovLocation? {
+    var lastMatch = -1
+    var i = 0
+    while (i <= tailData.size - 4) {
+      if (tailData[i] == MOOV_TYPE[0] &&
+        tailData[i + 1] == MOOV_TYPE[1] &&
+        tailData[i + 2] == MOOV_TYPE[2] &&
+        tailData[i + 3] == MOOV_TYPE[3]
+      ) {
+        lastMatch = i
+      }
+      i++
+    }
+    if (lastMatch < 4) return null
+    val sizeBuf = ByteBuffer.wrap(tailData, lastMatch - 4, 4).order(ByteOrder.BIG_ENDIAN)
+    val size = sizeBuf.int.toLong() and 0xFFFF_FFFFL
+    if (size < 8 || size > MAX_MOOV_READ + 8L) return null
+    return MoovLocation(
+      offset = tailStart + lastMatch + 4,
+      size = size - 8,
+    )
   }
 }
