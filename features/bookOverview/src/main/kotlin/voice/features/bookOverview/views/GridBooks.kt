@@ -210,6 +210,13 @@ internal fun GridBook(
             containerColor = MaterialTheme.colorScheme.secondaryContainer,
             contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
           )
+          if (book.progress > 0.05f) {
+            Spacer(Modifier.height(4.dp))
+            LinearProgressIndicator(
+              progress = { book.progress },
+              modifier = Modifier.fillMaxWidth(),
+            )
+          }
         }
         null -> {
           if (book.progress > 0.05) {

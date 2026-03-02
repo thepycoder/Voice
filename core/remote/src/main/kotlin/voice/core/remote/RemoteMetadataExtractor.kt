@@ -24,4 +24,16 @@ public class RemoteMetadataExtractor(
       Mp4MetadataReader.Metadata()
     }
   }
+
+  public fun extractMetadata(
+    fileSize: Long,
+    readBlock: (offset: Long, length: Int) -> ByteArray,
+  ): Mp4MetadataReader.Metadata {
+    return try {
+      Mp4MetadataExtractor.extractMetadata(fileSize, readBlock)
+    } catch (e: Exception) {
+      Logger.w(e, "Remote metadata extraction failed")
+      Mp4MetadataReader.Metadata()
+    }
+  }
 }

@@ -17,4 +17,8 @@
 - [x] Syncing does keep working when I switch apps, but some of the books end up with a ECONNABORTED error message next to them
 - [ ] How will we deal with keeping track of percentage finished and last position when the books are remote and not downloaded?
 - [ ] Sync long term notification doesn't actually show, but the app also isn't killed so syncing works
-- [ ] Progress indicator on bottom of book card doesn't work on locally downloaded remote books
+- [x] Progress indicator on bottom of book card doesn't work on locally downloaded remote books
+- [x] Consider using file sizes instead of file hashes to check for need to sync on sftp. File hashes are slow.
+- [ ] The search bar is broken
+- [ ] Downloading the whole brain child does not introduce chapters and does not even start playing. Also, downloading it with the screen locked just removed the progress bar and then bam, suddenly it's downloaded
+- [ ] We'll need to sort on date purchased. This is not easy to find order into.

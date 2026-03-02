@@ -218,4 +218,50 @@ public class SftpManager(
       ssh.disconnect()
     }
   }
+
+  /**
+   * Keeps a single SFTP connection open for the duration of the block.
+   * Use this for batch operations (e.g. sync) to avoid connection overhead.
+   */
+  public suspend fun <T> withSftpSession(block: suspend (SftpSession) -> T): T =
+    withContext(Dispatchers.IO) {
+      val settings = sftpSettings.get()
+      if (settings.host.isBlank() || settings.user.isBlank()) {
+        throw IllegalStateException("SFTP settings not configured")
+      }
+      var lastException: Throwable? = null
+      repeat(MAX_ATTEMPTS) { attempt ->
+        try {
+          val ssh = createSshClient()
+          ssh.connect(settings.host, settings.port)
+          ssh.authPassword(settings.user, settings.password)
+          val sftp = ssh.newSFTPClient()
+          try {
+            val session = SftpSessionImpl(sftp)
+            return@withContext block(session)
+          } finally {
+            try {
+              sftp.close()
+            } catch (e: Exception) {
+              Logger.w(e, "Error closing SFTP client")
+            }
+            try {
+              ssh.disconnect()
+            } catch (e: Exception) {
+              Logger.w(e, "Error disconnecting SSH")
+            }
+          }
+        } catch (e: java.util.concurrent.CancellationException) {
+          throw e
+        } catch (e: Throwable) {
+          lastException = e
+          if (!isConnectionError(e) || attempt == MAX_ATTEMPTS - 1) {
+            throw e
+          }
+          Logger.w(e, "SFTP connection error (attempt ${attempt + 1}/$MAX_ATTEMPTS), retrying…")
+          delay(RETRY_DELAY_MS)
+        }
+      }
+      throw lastException!!
+    }
 }

@@ -206,6 +206,19 @@ internal fun ListBookRow(
                 containerColor = MaterialTheme.colorScheme.secondaryContainer,
                 contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
               )
+              if (book.progress > 0.05f) {
+                Spacer(Modifier.height(4.dp))
+                LinearProgressIndicator(
+                  progress = { book.progress },
+                  modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(end = 12.dp)
+                    .clip(MaterialTheme.shapes.small)
+                    .height(4.dp),
+                  color = MaterialTheme.colorScheme.primary,
+                  trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                )
+              }
             }
             null -> {
               if (book.progress > 0.05f) {
