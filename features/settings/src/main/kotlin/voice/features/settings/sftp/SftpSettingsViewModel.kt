@@ -12,12 +12,14 @@ import voice.core.remote.LibrarySyncManager
 import voice.core.remote.SftpManager
 import voice.core.remote.SftpSettings
 import voice.core.remote.SftpSettingsProvider
+import voice.core.remote.SyncRunner
 
 @Inject
 class SftpSettingsViewModel(
   private val sftpSettingsProvider: SftpSettingsProvider,
   private val sftpManager: SftpManager,
   private val librarySyncManager: LibrarySyncManager,
+  private val syncRunner: SyncRunner,
   dispatcherProvider: DispatcherProvider,
 ) {
   private val scope = MainScope(dispatcherProvider)
@@ -104,7 +106,7 @@ class SftpSettingsViewModel(
         librarySyncManager.clearAll()
       }
       if (current.remotePath.isNotBlank() && current.host.isNotBlank()) {
-        librarySyncManager.sync().let { }
+        syncRunner.startSync()
       }
       testMessage = null
     }

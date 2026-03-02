@@ -10,7 +10,7 @@ import java.nio.ByteOrder
 public object MoovScanner {
 
   public const val INITIAL_READ_SIZE: Int = 64 * 1024
-  public const val MAX_MOOV_READ: Int = 8 * 1024 * 1024
+  public const val MAX_MOOV_READ: Int = 20 * 1024 * 1024
 
   public data class MoovLocation(
     val offset: Long,

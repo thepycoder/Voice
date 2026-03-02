@@ -40,6 +40,7 @@ import voice.core.remote.RemoteBook
 import voice.core.remote.RemoteCatalogRepo
 import voice.core.remote.RemotePaths
 import voice.core.remote.SftpSettingsProvider
+import voice.core.remote.SyncRunner
 import voice.core.remote.SyncState
 import voice.core.scanner.MediaScanTrigger
 import voice.core.search.BookSearch
@@ -74,6 +75,7 @@ class BookOverviewViewModel(
   private val librarySyncManager: LibrarySyncManager,
   private val downloadManager: DownloadManager,
   private val sftpSettingsProvider: SftpSettingsProvider,
+  private val syncRunner: SyncRunner,
 ) {
 
   private val scope = MainScope()
@@ -88,6 +90,19 @@ class BookOverviewViewModel(
         librarySyncManager.clearAll()
       }
       mediaScanner.scan()
+    }
+    scope.launch {
+      librarySyncManager.syncState.collect { state ->
+        when (state) {
+          is SyncState.Success, is SyncState.Error -> {
+            if (isRefreshing) {
+              mediaScanner.scanAndAwait(restartIfScanning = true)
+              isRefreshing = false
+            }
+          }
+          else -> {}
+        }
+      }
     }
   }
 
@@ -307,20 +322,22 @@ class BookOverviewViewModel(
     scope.launch {
       val settings = sftpSettingsProvider.get()
       if (settings.remotePath.isNotBlank()) {
-        librarySyncManager.sync().let { }
+        syncRunner.startSync()
       }
     }
   }
 
   fun onRefresh() {
     scope.launch {
-      isRefreshing = true
       val settings = sftpSettingsProvider.get()
       if (settings.remotePath.isNotBlank()) {
-        librarySyncManager.sync().let { }
+        isRefreshing = true
+        syncRunner.startSync()
+      } else {
+        isRefreshing = true
+        mediaScanner.scanAndAwait(restartIfScanning = true)
+        isRefreshing = false
       }
-      mediaScanner.scanAndAwait()
-      isRefreshing = false
     }
   }
 

@@ -14,5 +14,7 @@
 - [x] A downloaded file doesn't always seem to have its chapters processed like a local file would
 - [x] Cancelling a download does make the animation stop, but after a while the book does end up downloaded
 - [x] When a book is removed from the remote, it doesn't go away when syncing. I can even download it, and it will show, but not play, so probably a cache thing (I downloaded that book before while testing)
-- [ ] Syncing does keep working when I switch apps, but some of the books end up with a ECONNABORTED error message next to them
+- [x] Syncing does keep working when I switch apps, but some of the books end up with a ECONNABORTED error message next to them
 - [ ] How will we deal with keeping track of percentage finished and last position when the books are remote and not downloaded?
+- [ ] Sync long term notification doesn't actually show, but the app also isn't killed so syncing works
+- [ ] Progress indicator on bottom of book card doesn't work on locally downloaded remote books
