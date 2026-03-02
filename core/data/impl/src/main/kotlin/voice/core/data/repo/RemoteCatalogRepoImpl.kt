@@ -3,6 +3,7 @@ package voice.core.data.repo
 import android.app.Application
 import androidx.datastore.core.DataStore
 import dev.zacsweers.metro.AppScope
+import voice.core.data.isSupportedAudioFile
 import dev.zacsweers.metro.ContributesBinding
 import dev.zacsweers.metro.Inject
 import kotlinx.coroutines.flow.Flow
@@ -35,6 +36,6 @@ public class RemoteCatalogRepoImpl(
   override suspend fun isDownloaded(remoteBookId: String): Boolean {
     val dir = File(application.filesDir, voice.core.remote.RemotePaths.DOWNLOADS_DIR).resolve(remoteBookId)
     return dir.exists() && dir.isDirectory &&
-      (dir.listFiles()?.any { it.name.endsWith(".m4b", ignoreCase = true) } == true)
+      (dir.listFiles()?.any { it.name.isSupportedAudioFile() } == true)
   }
 }

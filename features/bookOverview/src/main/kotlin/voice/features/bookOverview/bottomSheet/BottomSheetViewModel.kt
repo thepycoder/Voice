@@ -111,10 +111,10 @@ class BottomSheetViewModel(
       path.startsWith(downloadsPath) && path.contains("/${book.id}/")
     }
 
-    return if (isDownloaded) {
-      EditBookBottomSheetState(listOf(BottomSheetItem.RemoveDownload))
-    } else {
-      EditBookBottomSheetState(listOf(BottomSheetItem.Download))
+    return when {
+      isDownloaded -> EditBookBottomSheetState(listOf(BottomSheetItem.RemoveDownload))
+      book.audioFileName != null -> EditBookBottomSheetState(listOf(BottomSheetItem.Download))
+      else -> EditBookBottomSheetState(emptyList())
     }
   }
 

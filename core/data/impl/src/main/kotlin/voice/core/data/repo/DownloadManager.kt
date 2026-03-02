@@ -52,8 +52,8 @@ public class DownloadManagerImpl(
   }
 
   override suspend fun downloadBook(book: RemoteBook): Result<Unit> = withContext(Dispatchers.IO) {
-    val m4bFileName = book.m4bFileName
-      ?: return@withContext Result.failure(IllegalArgumentException("No m4b file specified"))
+    val audioFileName = book.audioFileName
+      ?: return@withContext Result.failure(IllegalArgumentException("No audio file specified"))
 
     cancelRequested = false
     currentDownloadBookId = book.id
@@ -61,10 +61,10 @@ public class DownloadManagerImpl(
     try {
       _downloadState.value = DownloadState.Downloading(book.id, 0f)
       val settings = settingsProvider.get()
-      val remotePath = "${settings.remotePath}/${book.folder}/$m4bFileName"
+      val remotePath = "${settings.remotePath}/${book.folder}/$audioFileName"
       val downloadsDir = File(application.filesDir, RemotePaths.DOWNLOADS_DIR).apply { mkdirs() }
       val bookDir = File(downloadsDir, book.id).apply { mkdirs() }
-      val localFile = File(bookDir, m4bFileName)
+      val localFile = File(bookDir, audioFileName)
       currentDownloadFile = localFile
 
       val notificationId = book.id.hashCode()

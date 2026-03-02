@@ -142,6 +142,7 @@ class BookOverviewViewModelTest {
       title = "Remote Title",
       author = "Remote Author",
       dateAdded = "2023-01-01",
+      error = null,
     )
     every { remoteCatalogRepo.flow() } returns flowOf(listOf(remoteBook))
 
@@ -156,7 +157,35 @@ class BookOverviewViewModelTest {
       val allItems = state.books.values.flatten()
       allItems shouldHaveSize 1
       allItems.first().name shouldBe "Remote Title"
-      allItems.first().remoteState shouldBe RemoteBookState.NotDownloaded("remote1", 0L)
+      allItems.first().remoteState shouldBe RemoteBookState.NotDownloaded("remote1", 0L, null)
+    }
+  }
+
+  @Test
+  fun `remote book with error shows error in view state`() = runTest {
+    val remoteBook = RemoteBook(
+      id = "remote1",
+      folder = "folder1",
+      title = "Remote Title",
+      author = null,
+      dateAdded = "2023-01-01",
+      error = "No audio file found",
+    )
+    every { remoteCatalogRepo.flow() } returns flowOf(listOf(remoteBook))
+
+    backgroundScope.launchMolecule(RecompositionMode.Immediate) {
+      viewModel.state()
+    }.test {
+      var state = awaitItem()
+      while (state.books.isEmpty() || state.books.values.flatten().isEmpty()) {
+        state = awaitItem()
+      }
+
+      val allItems = state.books.values.flatten()
+      allItems shouldHaveSize 1
+      val notDownloaded = allItems.first().remoteState as? RemoteBookState.NotDownloaded
+      notDownloaded shouldNotBe null
+      notDownloaded?.error shouldBe "No audio file found"
     }
   }
 
@@ -169,6 +198,7 @@ class BookOverviewViewModelTest {
       title = "Remote Title",
       author = "Remote Author",
       dateAdded = "2023-01-01",
+      error = null,
     )
     every { remoteCatalogRepo.flow() } returns flowOf(listOf(remoteBook))
 
@@ -209,6 +239,7 @@ class BookOverviewViewModelTest {
       title = "Remote Title",
       author = "Remote Author",
       dateAdded = "2023-01-01",
+      error = null,
     )
     every { remoteCatalogRepo.flow() } returns flowOf(listOf(remoteBook))
 
@@ -251,6 +282,7 @@ class BookOverviewViewModelTest {
       title = "Remote Title",
       author = "Remote Author",
       dateAdded = "2023-01-01",
+      error = null,
     )
     every { remoteCatalogRepo.flow() } returns flowOf(listOf(remoteBook))
 

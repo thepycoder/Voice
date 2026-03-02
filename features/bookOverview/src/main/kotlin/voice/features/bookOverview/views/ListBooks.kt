@@ -20,6 +20,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CloudDownload
 import androidx.compose.material.icons.outlined.CloudDone
+import androidx.compose.material.icons.outlined.Warning
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
@@ -167,6 +168,15 @@ internal fun ListBookRow(
                 containerColor = MaterialTheme.colorScheme.primaryContainer,
                 contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
               )
+              if (remote.error != null) {
+                Spacer(Modifier.height(4.dp))
+                RemoteBadge(
+                  icon = Icons.Outlined.Warning,
+                  text = remote.error,
+                  containerColor = MaterialTheme.colorScheme.errorContainer,
+                  contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                )
+              }
             }
             is RemoteBookState.Downloading -> {
               Spacer(Modifier.height(4.dp))

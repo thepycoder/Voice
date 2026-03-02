@@ -12,7 +12,8 @@ public data class RemoteBook(
   val hasPdf: Boolean = false,
   val dateAdded: String,
   val coverFileName: String? = null,
-  val m4bFileName: String? = null,
+  val audioFileName: String? = null,
+  val error: String?,
 )
 
 @Serializable

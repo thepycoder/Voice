@@ -27,6 +27,7 @@ sealed interface RemoteBookState {
   data class NotDownloaded(
     override val remoteBookId: String,
     val durationMs: Long,
+    val error: String?,
   ) : RemoteBookState
 
   data class Downloading(
@@ -68,10 +69,10 @@ internal fun RemoteBook.toItemViewState(
       if (downloadState.remoteBookId == id) {
         RemoteBookState.Downloading(id, downloadState.progress)
       } else {
-        RemoteBookState.NotDownloaded(id, durationMs)
+        RemoteBookState.NotDownloaded(id, durationMs, error)
       }
     }
-    else -> RemoteBookState.NotDownloaded(id, durationMs)
+    else -> RemoteBookState.NotDownloaded(id, durationMs, error)
   }
 
   return BookOverviewItemViewState(

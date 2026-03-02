@@ -173,11 +173,7 @@ fun SftpSettingsScreen(
       TextButton(
         onClick = {
           viewModel.onSave()
-          when (origin) {
-            Origin.Default -> navigator.setRoot(Destination.BookOverview)
-            Origin.Onboarding -> navigator.goTo(Destination.OnboardingCompletion)
-            null -> { }
-          }
+          navigator.goBack()
         },
       ) {
         Text(if (origin != null) "Add" else "Save")

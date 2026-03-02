@@ -2,6 +2,7 @@ package voice.core.remote
 
 import android.app.Application
 import dev.zacsweers.metro.Inject
+import voice.core.data.isSupportedAudioFile
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -23,7 +24,6 @@ public class LibrarySyncManager(
   private val catalogRepo: RemoteCatalogRepo,
 ) {
 
-  private val mp4MetadataReader = Mp4MetadataReader()
   private val dateFormatter = DateTimeFormatter.ISO_LOCAL_DATE_TIME
 
   private val _syncState = MutableStateFlow<SyncState>(SyncState.Idle)
@@ -77,51 +77,72 @@ public class LibrarySyncManager(
           val remotePath = "${settings.remotePath}/$folder"
           val files = sftpManager.listFiles(remotePath)
 
-          val m4bFile = files.find { it.name.endsWith(".m4b", ignoreCase = true) }
+          val audioFile = files.find { it.name.isSupportedAudioFile() }
           val coverFile = files.find {
             it.name.endsWith(".jpg", ignoreCase = true) || it.name.endsWith(".jpeg", ignoreCase = true)
           }
           val pdfFile = files.find { it.name.endsWith(".pdf", ignoreCase = true) }
 
-          if (m4bFile == null) {
-            emitProgress("Skipping $folder: no m4b")
+          if (audioFile == null) {
+            val book = RemoteBook(
+              id = folder,
+              folder = folder,
+              title = folder,
+              author = null,
+              durationMs = 0L,
+              hasPdf = pdfFile != null,
+              dateAdded = LocalDateTime.now().format(dateFormatter),
+              coverFileName = coverFile?.name,
+              audioFileName = null,
+              error = "No audio file found",
+            )
+            currentBooks[folder] = book
+            newBooksCount++
             continue
           }
 
+          var coverError: String? = null
           if (coverFile != null) {
-            val localCoverFile = File(coversDir, "$folder.jpg")
-            sftpManager.downloadFile("$remotePath/${coverFile.name}", localCoverFile)
-          }
-
-          emitProgress("Extracting metadata: $folder")
-          val metadata = try {
-            val m4bData = sftpManager.partialRead(
-              "$remotePath/${m4bFile.name}",
-              0,
-              Mp4MetadataReader.DEFAULT_READ_SIZE,
-            )
-            mp4MetadataReader.parseMetadata(m4bData)
-          } catch (e: Exception) {
-            Logger.w(e, "Failed to read m4b metadata for $folder")
-            Mp4MetadataReader.Metadata()
+            try {
+              val localCoverFile = File(coversDir, "$folder.jpg")
+              sftpManager.downloadFile("$remotePath/${coverFile.name}", localCoverFile)
+            } catch (e: Exception) {
+              Logger.w(e, "Cover download failed for $folder")
+              coverError = "Couldn't download cover"
+            }
           }
 
           val book = RemoteBook(
             id = folder,
             folder = folder,
-            title = metadata.title ?: folder,
-            author = metadata.author,
-            durationMs = metadata.durationMs,
+            title = folder,
+            author = null,
+            durationMs = 0L,
             hasPdf = pdfFile != null,
             dateAdded = LocalDateTime.now().format(dateFormatter),
-            coverFileName = coverFile?.name,
-            m4bFileName = m4bFile.name,
+            coverFileName = if (coverError != null) null else coverFile?.name,
+            audioFileName = audioFile.name,
+            error = coverError,
           )
           currentBooks[folder] = book
           newBooksCount++
         } catch (e: Exception) {
           Logger.e(e, "Error processing folder $folder")
           emitProgress("Error: $folder – ${e.message}")
+          val book = RemoteBook(
+            id = folder,
+            folder = folder,
+            title = folder,
+            author = null,
+            durationMs = 0L,
+            hasPdf = false,
+            dateAdded = LocalDateTime.now().format(dateFormatter),
+            coverFileName = null,
+            audioFileName = null,
+            error = e.message ?: "Unknown error",
+          )
+          currentBooks[folder] = book
+          newBooksCount++
         }
       }
 

@@ -92,6 +92,8 @@ class BottomSheetViewModelTest {
       folder = "folder1",
       title = "Remote Title",
       dateAdded = "2023-01-01",
+      audioFileName = "book.m4b",
+      error = null,
     )
     every { remoteCatalogRepo.flow() } returns flowOf(listOf(remoteBook))
     every { contentRepo.flow() } returns flowOf(emptyList())
@@ -100,6 +102,25 @@ class BottomSheetViewModelTest {
 
     state.items shouldContain BottomSheetItem.Download
     state.items shouldNotContain BottomSheetItem.RemoveDownload
+  }
+
+  @Test
+  fun `remote book with no audio file shows no Download option`() = runTest {
+    val remoteBook = RemoteBook(
+      id = "remote1",
+      folder = "folder1",
+      title = "Remote Title",
+      dateAdded = "2023-01-01",
+      audioFileName = null,
+      error = "No audio file found",
+    )
+    every { remoteCatalogRepo.flow() } returns flowOf(listOf(remoteBook))
+    every { contentRepo.flow() } returns flowOf(emptyList())
+
+    val state = viewModel.prepareBookSelection(BookId("remote://remote1"))
+
+    state.items shouldNotContain BottomSheetItem.Download
+    state.items shouldBe emptyList()
   }
 
   @Test
@@ -115,6 +136,7 @@ class BottomSheetViewModelTest {
       folder = "folder1",
       title = "Remote Title",
       dateAdded = "2023-01-01",
+      error = null,
     )
     every { contentRepo.flow() } returns flowOf(listOf(content))
     every { remoteCatalogRepo.flow() } returns flowOf(listOf(remoteBook))
@@ -186,6 +208,7 @@ class BottomSheetViewModelTest {
       folder = "folder1",
       title = "Remote Title",
       dateAdded = "2023-01-01",
+      error = null,
     )
     every { contentRepo.flow() } returns flowOf(listOf(content))
     every { remoteCatalogRepo.flow() } returns flowOf(listOf(remoteBook))
@@ -219,6 +242,7 @@ class BottomSheetViewModelTest {
       folder = "folder1",
       title = "Remote Title",
       dateAdded = "2023-01-01",
+      error = null,
     )
     every { contentRepo.flow() } returns flowOf(listOf(content))
     every { remoteCatalogRepo.flow() } returns flowOf(listOf(remoteBook))

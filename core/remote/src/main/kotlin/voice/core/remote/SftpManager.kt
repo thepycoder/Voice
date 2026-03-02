@@ -123,31 +123,6 @@ public class SftpManager(
     }
   }
 
-  public suspend fun partialRead(
-    remotePath: String,
-    offset: Long,
-    length: Int,
-  ): ByteArray {
-    return withContext(Dispatchers.IO) {
-      try {
-        withSftpClient { sftp ->
-          val remoteFile = sftp.open(remotePath)
-          try {
-            val buffer = ByteArray(length)
-            val read = remoteFile.read(offset, buffer, 0, length)
-            if (read == -1) return@withSftpClient ByteArray(0)
-            buffer.copyOf(read)
-          } finally {
-            remoteFile.close()
-          }
-        }
-      } catch (e: Exception) {
-        Logger.e(e, "Failed to partial read from $remotePath")
-        throw RuntimeException("Failed to read from file '$remotePath'. Original error: ${e.message}", e)
-      }
-    }
-  }
-
   private suspend fun <T> withSftpClient(block: (SFTPClient) -> T): T {
     val settings = sftpSettings.get()
 

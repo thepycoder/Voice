@@ -1,4 +1,4 @@
-package voice.core.remote
+package voice.core.mp4metadata
 
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
@@ -40,7 +40,7 @@ public class Mp4MetadataReader {
       }
     }
 
-    return Metadata(title, author, durationMs)
+    return Metadata(title = title, author = author, durationMs = durationMs)
   }
 
   private fun findAtom(
@@ -50,21 +50,20 @@ public class Mp4MetadataReader {
     val startPos = buffer.position()
 
     while (buffer.remaining() >= 8) {
-      val size = buffer.int
+      val size = buffer.int.toLong() and 0xFFFF_FFFFL
       val type = String(ByteArray(4) { buffer.get() }, Charsets.ISO_8859_1)
 
       if (size < 8) break
 
-      val contentSize = size - 8
+      val contentSize = (size - 8).toInt()
+      if (contentSize > buffer.remaining()) break
 
       if (type == atomType) {
         val atomData = ByteArray(contentSize)
         buffer.get(atomData)
         return ByteBuffer.wrap(atomData).order(ByteOrder.BIG_ENDIAN)
       } else {
-        val newPos = buffer.position() + contentSize
-        if (newPos > buffer.limit()) break
-        buffer.position(newPos)
+        buffer.position(buffer.position() + contentSize)
       }
     }
 
@@ -79,13 +78,13 @@ public class Mp4MetadataReader {
 
     return if (version.toInt() == 1) {
       buffer.position(buffer.position() + 16)
-      val timeScale = buffer.int.toLong()
+      val timeScale = buffer.int.toLong() and 0xFFFF_FFFFL
       val duration = buffer.long
       (duration * 1000 / timeScale)
     } else {
       buffer.position(buffer.position() + 8)
-      val timeScale = buffer.int.toLong()
-      val duration = buffer.int.toLong()
+      val timeScale = buffer.int.toLong() and 0xFFFF_FFFFL
+      val duration = buffer.int.toLong() and 0xFFFF_FFFFL
       (duration * 1000 / timeScale)
     }
   }
@@ -97,12 +96,13 @@ public class Mp4MetadataReader {
     val startPos = buffer.position()
 
     while (buffer.remaining() >= 8) {
-      val size = buffer.int
+      val size = buffer.int.toLong() and 0xFFFF_FFFFL
       val type = String(ByteArray(4) { buffer.get() }, Charsets.ISO_8859_1)
 
       if (size < 8) break
 
-      val contentSize = size - 8
+      val contentSize = (size - 8).toInt()
+      if (contentSize > buffer.remaining()) break
 
       if (type == key) {
         val dataAtom = ByteArray(contentSize)
@@ -122,9 +122,7 @@ public class Mp4MetadataReader {
         }
         break
       } else {
-        val newPos = buffer.position() + contentSize
-        if (newPos > buffer.limit()) break
-        buffer.position(newPos)
+        buffer.position(buffer.position() + contentSize)
       }
     }
 

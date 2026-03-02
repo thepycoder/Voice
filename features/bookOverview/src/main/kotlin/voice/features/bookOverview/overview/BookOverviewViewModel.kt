@@ -244,7 +244,7 @@ class BookOverviewViewModel(
       scope.launch {
         val books = remoteCatalogRepo.flow().first()
         val book = books.find { it.id == remoteId }
-        if (book != null) {
+        if (book != null && book.audioFileName != null) {
           downloadManager.downloadBook(book).let { }
         }
       }
