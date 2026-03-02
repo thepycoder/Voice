@@ -29,6 +29,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewParameter
@@ -53,6 +54,7 @@ import voice.features.bookOverview.deleteBook.DeleteBookDialog
 import voice.features.bookOverview.di.BookOverviewGraph
 import voice.features.bookOverview.editTitle.EditBookTitleDialog
 import voice.core.remote.SyncState
+import voice.core.strings.R as StringsR
 import voice.features.bookOverview.overview.BookOverviewCategory
 import voice.features.bookOverview.overview.BookOverviewItemViewState
 import voice.features.bookOverview.overview.BookOverviewLayoutMode
@@ -90,7 +92,10 @@ fun BookOverviewScreen(modifier: Modifier = Modifier) {
   LaunchedEffect(Unit) {
     bookOverviewViewModel.attach()
   }
-  val viewState = bookOverviewViewModel.state()
+  val viewState = bookOverviewViewModel.state(
+    unknownAuthor = stringResource(StringsR.string.unknown_author),
+    unknownDuration = stringResource(StringsR.string.unknown_duration),
+  )
 
   val scope = rememberCoroutineScope()
 

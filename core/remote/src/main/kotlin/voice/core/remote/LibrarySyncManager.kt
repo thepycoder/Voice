@@ -15,6 +15,8 @@ import java.io.File
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
+private val m4Extensions = setOf("m4b", "m4a", "mp4")
+
 @SingleIn(AppScope::class)
 @Inject
 public class LibrarySyncManager(
@@ -22,6 +24,7 @@ public class LibrarySyncManager(
   private val sftpManager: SftpManager,
   private val settingsProvider: SftpSettingsProvider,
   private val catalogRepo: RemoteCatalogRepo,
+  private val metadataExtractor: RemoteMetadataExtractor,
 ) {
 
   private val dateFormatter = DateTimeFormatter.ISO_LOCAL_DATE_TIME
@@ -112,12 +115,31 @@ public class LibrarySyncManager(
             }
           }
 
+          val (title, author, durationMs) = if (audioFile.name.substringAfterLast(".", "").lowercase() in m4Extensions) {
+            try {
+              val metadata = metadataExtractor.extractMetadata(
+                "$remotePath/${audioFile.name}",
+                audioFile.size,
+              )
+              Triple(
+                metadata.title?.takeIf { it.isNotBlank() } ?: folder,
+                metadata.author?.takeIf { it.isNotBlank() },
+                metadata.durationMs,
+              )
+            } catch (e: Exception) {
+              Logger.w(e, "Metadata extraction failed for $folder")
+              Triple(folder, null, 0L)
+            }
+          } else {
+            Triple(folder, null, 0L)
+          }
+
           val book = RemoteBook(
             id = folder,
             folder = folder,
-            title = folder,
-            author = null,
-            durationMs = 0L,
+            title = title,
+            author = author,
+            durationMs = durationMs,
             hasPdf = pdfFile != null,
             dateAdded = LocalDateTime.now().format(dateFormatter),
             coverFileName = if (coverError != null) null else coverFile?.name,

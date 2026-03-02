@@ -92,7 +92,10 @@ class BookOverviewViewModel(
   }
 
   @Composable
-  internal fun state(): BookOverviewViewState {
+  internal fun state(
+    unknownAuthor: String,
+    unknownDuration: String,
+  ): BookOverviewViewState {
     val playState = remember { playStateManager.flow }
       .collectAsState(initial = PlayStateManager.PlayState.Paused).value
     val hasStoragePermissionBug = remember { deviceHasStoragePermissionBug.hasBug }
@@ -130,6 +133,8 @@ class BookOverviewViewModel(
         remoteBook.toItemViewState(
           coverFile = getRemoteCoverFile(remoteBook),
           downloadState = downloadState,
+          unknownAuthor = unknownAuthor,
+          unknownDuration = unknownDuration,
         )
       }
 

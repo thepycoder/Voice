@@ -63,6 +63,8 @@ private fun Book.progress(): Float {
 internal fun RemoteBook.toItemViewState(
   coverFile: File?,
   downloadState: DownloadState,
+  unknownAuthor: String,
+  unknownDuration: String,
 ): BookOverviewItemViewState {
   val remoteState = when (downloadState) {
     is DownloadState.Downloading -> {
@@ -76,15 +78,15 @@ internal fun RemoteBook.toItemViewState(
   }
 
   return BookOverviewItemViewState(
-    name = title,
-    author = author,
+    name = title.takeIf { it.isNotBlank() } ?: folder,
+    author = author?.takeIf { it.isNotBlank() } ?: unknownAuthor,
     cover = coverFile?.let(::ImmutableFile),
     id = BookId("remote://$id"),
     progress = 0f,
     remainingTime = if (durationMs > 0) {
       DateUtils.formatElapsedTime(durationMs / 1000)
     } else {
-      ""
+      unknownDuration
     },
     remoteState = remoteState,
   )

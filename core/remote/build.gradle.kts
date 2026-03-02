@@ -9,6 +9,7 @@ dependencies {
   implementation(projects.core.logging.api)
   implementation(projects.core.common)
   implementation(projects.core.data.api)
+  implementation(projects.core.mp4Metadata)
   
   implementation(libs.androidxCore)
   implementation(libs.coroutines.core)

@@ -5,7 +5,7 @@ import com.github.ajalt.clikt.core.main
 import com.github.ajalt.clikt.parameters.options.default
 import com.github.ajalt.clikt.parameters.options.flag
 import com.github.ajalt.clikt.parameters.options.option
-import voice.core.mp4metadata.MoovScanner
+import voice.core.mp4metadata.Mp4MetadataExtractor
 import voice.core.mp4metadata.Mp4MetadataReader
 import java.io.File
 import java.io.RandomAccessFile
@@ -76,17 +76,11 @@ class SftpMetadataCli : CliktCommand(
         log.error("File is empty: $path")
         throw RuntimeException("Empty file")
       }
-      val initialSize = MoovScanner.INITIAL_READ_SIZE.toLong().coerceAtMost(fileSize).toInt()
-      val initialData = ByteArray(initialSize).also { raf.readFully(it) }
-      runMetadataExtraction(
-        initialData = initialData,
-        fileSize = fileSize,
-        readBlock = { offset, length ->
-          raf.seek(offset)
-          ByteArray(length).also { raf.readFully(it) }
-        },
-        log = log,
-      )
+      val metadata = Mp4MetadataExtractor.extractMetadata(fileSize) { offset, length ->
+        raf.seek(offset)
+        ByteArray(length).also { raf.readFully(it) }
+      }
+      printResult(metadata)
     }
   }
 
@@ -107,82 +101,11 @@ class SftpMetadataCli : CliktCommand(
       val fileSize = info.size
       log.sftp("Remote file size: $fileSize bytes")
 
-      val initialSize = MoovScanner.INITIAL_READ_SIZE.toLong().coerceAtMost(fileSize).toInt()
-      val initialData = client.partialRead(sftp, remotePath, 0L, initialSize)
-      if (initialData.isEmpty()) {
-        log.error("Failed to read initial $initialSize bytes from $remotePath")
-        throw RuntimeException("Partial read failed")
+      val metadata = Mp4MetadataExtractor.extractMetadata(fileSize) { offset, length ->
+        client.partialRead(sftp, remotePath, offset, length)
       }
-      log.scan("Read ${initialData.size} bytes from start of file")
-
-      runMetadataExtraction(
-        initialData = initialData,
-        fileSize = fileSize,
-        readBlock = { offset, length -> client.partialRead(sftp, remotePath, offset, length) },
-        log = log,
-      )
+      printResult(metadata)
     }
-  }
-
-  private fun runMetadataExtraction(
-    initialData: ByteArray,
-    fileSize: Long,
-    readBlock: (offset: Long, length: Int) -> ByteArray,
-    log: VerboseLogger,
-  ) {
-    var moovOffset: Long
-    var moovSize: Long
-
-    val locationInHead = MoovScanner.findMoovInHead(initialData)
-    if (locationInHead != null) {
-      log.scan("Found moov at start of file (faststart): offset=${locationInHead.offset}, size=${locationInHead.size}")
-      moovOffset = locationInHead.offset
-      moovSize = locationInHead.size
-    } else {
-      log.scan("moov not found in first ${initialData.size} bytes, scanning from end of file (size=$fileSize)")
-      val tailSize = MoovScanner.MAX_MOOV_READ.toLong().coerceAtMost(fileSize)
-      val tailStart = (fileSize - tailSize).coerceAtLeast(0L)
-      val tailData = readBlock(tailStart, tailSize.toInt())
-      if (tailData.isEmpty()) {
-        log.error("Failed to read tail of file (offset=$tailStart, length=$tailSize)")
-        throw RuntimeException("Cannot read file tail")
-      }
-      val locationInTail = MoovScanner.findMoovInTail(tailData, fileSize)
-      if (locationInTail == null) {
-        log.error("moov atom not found in head or tail of file. File may be corrupt or not a valid MP4/M4B.")
-        throw RuntimeException("moov not found")
-      }
-      log.scan("Found moov at end of file: offset=${locationInTail.offset}, size=${locationInTail.size}")
-      moovOffset = locationInTail.offset
-      moovSize = locationInTail.size
-    }
-
-    val readSize = moovSize.toInt().coerceAtMost(MoovScanner.MAX_MOOV_READ)
-    val boxStart = moovOffset - 8
-    val needLen = 8 + readSize
-    val moovData = if (locationInHead != null && boxStart >= 0 && boxStart + needLen <= initialData.size) {
-      val start = boxStart.toInt()
-      initialData.copyOfRange(start, start + needLen)
-    } else {
-      readBlock(boxStart, needLen)
-    }
-    if (moovData.isEmpty()) {
-      log.error("Failed to read moov data (offset=${moovOffset - 8}, length=${readSize + 8})")
-      throw RuntimeException("Cannot read moov")
-    }
-    log.parse("Read ${moovData.size} bytes of moov data")
-
-    val reader = Mp4MetadataReader()
-    val metadata = reader.parseMetadata(moovData)
-
-    if (metadata.title == null && metadata.author == null && metadata.durationMs == 0L) {
-      log.parse("udta atom not found in moov (or meta/ilst empty)")
-      log.parse("meta→ilst not found (legacy udta or no iTunes metadata)")
-    } else {
-      log.ok("title=\"${metadata.title}\", author=\"${metadata.author}\", duration=${metadata.durationMs}ms")
-    }
-
-    printResult(metadata)
   }
 
   private fun printResult(metadata: voice.core.mp4metadata.Mp4MetadataReader.Metadata) {

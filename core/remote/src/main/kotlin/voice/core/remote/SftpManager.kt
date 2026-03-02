@@ -83,6 +83,41 @@ public class SftpManager(
     }
   }
 
+  public suspend fun partialRead(
+    remotePath: String,
+    offset: Long,
+    length: Int,
+  ): ByteArray = withContext(Dispatchers.IO) {
+    try {
+      withSftpClient { sftp ->
+        val remoteFile = sftp.open(remotePath)
+        try {
+          val result = ByteArray(length)
+          var totalRead = 0
+          var currentOffset = offset
+          val chunkSize = 512 * 1024
+          while (totalRead < length) {
+            val toRead = (length - totalRead).coerceAtMost(chunkSize)
+            val buffer = ByteArray(toRead)
+            val read = remoteFile.read(currentOffset, buffer, 0, toRead)
+            if (read <= 0) break
+            buffer.copyInto(result, totalRead, 0, read)
+            totalRead += read
+            currentOffset += read
+          }
+          result.copyOf(totalRead)
+        } finally {
+          remoteFile.close()
+        }
+      }
+    } catch (e: java.util.concurrent.CancellationException) {
+      throw e
+    } catch (e: Exception) {
+      Logger.e(e, "Failed to partial read $remotePath at offset $offset length $length")
+      throw RuntimeException("Failed to read file '$remotePath'. Original error: ${e.message}", e)
+    }
+  }
+
   public suspend fun downloadFile(
     remotePath: String,
     localFile: File,

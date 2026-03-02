@@ -149,4 +149,6 @@
         <item quantity="other">%d minutes</item>
     </plurals>
     <string name="playback.current_chapter">Current chapter</string>
+    <string name="unknown_author">Unknown author</string>
+    <string name="unknown_duration">Unknown duration</string>
 </resources>
