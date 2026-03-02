@@ -15,5 +15,7 @@ dependencies {
   implementation(libs.datastore)
   implementation(libs.serialization.json)
   
-  api("com.hierynomus:sshj:0.38.0")
+  api("com.hierynomus:sshj:0.39.0")
+  implementation("net.i2p.crypto:eddsa:0.3.0")
+  implementation("org.bouncycastle:bcprov-jdk18on:1.80")
 }

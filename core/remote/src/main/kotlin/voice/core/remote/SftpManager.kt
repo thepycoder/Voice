@@ -17,6 +17,15 @@ public class SftpManager(
   private val sftpSettings: SftpSettingsProvider,
 ) {
 
+  private fun createSshClient(): SSHClient {
+    // Ensure security providers are set up before creating SSHClient,
+    // as DefaultConfig checks for BouncyCastle during construction.
+    SshSecurityProviderInitializer.setupBouncyCastle()
+    return SSHClient(DefaultConfig()).apply {
+      addHostKeyVerifier(PromiscuousVerifier())
+    }
+  }
+
   public suspend fun testConnection() {
     withContext(Dispatchers.IO) {
       val settings = sftpSettings.get()
@@ -25,27 +34,14 @@ public class SftpManager(
         throw IllegalStateException("SFTP settings not configured")
       }
 
-      val ssh = SSHClient(DefaultConfig())
-      ssh.addHostKeyVerifier(PromiscuousVerifier())
+      val ssh = createSshClient()
 
-      var currentStep = "Initialization"
       try {
-        currentStep = "Connecting to ${settings.host}:${settings.port}"
         ssh.connect(settings.host, settings.port)
-
-        currentStep = "Authenticating user '${settings.user}'"
         ssh.authPassword(settings.user, settings.password)
-
-        currentStep = "Starting SFTP subsystem"
         val sftp = ssh.newSFTPClient()
         sftp.close()
         Logger.i("SFTP connection test successful")
-      } catch (e: Throwable) {
-        Logger.e(e, "SFTP connection test failed at step: $currentStep")
-        throw RuntimeException(
-          "Failed during step: [$currentStep]. Original error: ${e.javaClass.simpleName} - ${e.message}",
-          e,
-        )
       } finally {
         try {
           ssh.disconnect()
@@ -159,9 +155,7 @@ public class SftpManager(
       throw IllegalStateException("SFTP settings not configured")
     }
 
-    val ssh = SSHClient(DefaultConfig())
-    ssh.addHostKeyVerifier(PromiscuousVerifier())
-
+    val ssh = createSshClient()
     try {
       ssh.connect(settings.host, settings.port)
       ssh.authPassword(settings.user, settings.password)

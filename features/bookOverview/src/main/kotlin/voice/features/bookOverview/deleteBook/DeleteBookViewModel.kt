@@ -9,7 +9,9 @@ import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
 import voice.core.data.BookId
 import voice.core.logging.api.Logger
+import voice.core.remote.RemotePaths
 import voice.core.scanner.MediaScanTrigger
+import java.io.File
 import voice.features.bookOverview.bottomSheet.BottomSheetItem
 import voice.features.bookOverview.bottomSheet.BottomSheetItemViewModel
 import voice.features.bookOverview.di.BookOverviewScope
@@ -28,6 +30,11 @@ class DeleteBookViewModel(
 
   override suspend fun items(bookId: BookId): List<BottomSheetItem> {
     if (bookId.value.startsWith("remote://")) {
+      return emptyList()
+    }
+    val downloadsPath = File(application.filesDir, RemotePaths.DOWNLOADS_DIR).absolutePath
+    val bookPath = bookId.toUri().path
+    if (bookPath != null && bookPath.startsWith(downloadsPath)) {
       return emptyList()
     }
     return listOf(BottomSheetItem.DeleteBook)

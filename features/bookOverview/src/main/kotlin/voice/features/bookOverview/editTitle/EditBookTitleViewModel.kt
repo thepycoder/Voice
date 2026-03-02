@@ -1,5 +1,6 @@
 package voice.features.bookOverview.editTitle
 
+import android.app.Application
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import dev.zacsweers.metro.ContributesIntoSet
@@ -7,13 +8,18 @@ import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
 import voice.core.data.BookId
 import voice.core.data.repo.BookRepository
+import voice.core.remote.RemotePaths
 import voice.features.bookOverview.bottomSheet.BottomSheetItem
 import voice.features.bookOverview.bottomSheet.BottomSheetItemViewModel
 import voice.features.bookOverview.di.BookOverviewScope
+import java.io.File
 
 @BookOverviewScope
 @ContributesIntoSet(BookOverviewScope::class)
-class EditBookTitleViewModel(private val repo: BookRepository) : BottomSheetItemViewModel {
+class EditBookTitleViewModel(
+  private val application: Application,
+  private val repo: BookRepository,
+) : BottomSheetItemViewModel {
 
   private val scope = MainScope()
 
@@ -22,6 +28,11 @@ class EditBookTitleViewModel(private val repo: BookRepository) : BottomSheetItem
 
   override suspend fun items(bookId: BookId): List<BottomSheetItem> {
     if (bookId.value.startsWith("remote://")) {
+      return emptyList()
+    }
+    val downloadsPath = File(application.filesDir, RemotePaths.DOWNLOADS_DIR).absolutePath
+    val bookPath = bookId.toUri().path
+    if (bookPath != null && bookPath.startsWith(downloadsPath)) {
       return emptyList()
     }
     return listOf(BottomSheetItem.Title)
