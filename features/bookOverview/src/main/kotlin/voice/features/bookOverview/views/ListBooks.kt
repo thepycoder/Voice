@@ -110,13 +110,11 @@ internal fun ListBookRow(
         onLongClick = { onBookLongClick(book.id) },
       ),
   ) {
-    Row(
-      modifier = Modifier.padding(),
-      verticalAlignment = Alignment.CenterVertically,
-    ) {
-      CoverImage(book.cover)
+    Column(Modifier.padding()) {
+      Row(verticalAlignment = Alignment.CenterVertically) {
+        CoverImage(book.cover)
 
-      Column(
+        Column(
           Modifier
             .padding(start = 12.dp)
             .weight(1f),
@@ -186,17 +184,6 @@ internal fun ListBookRow(
                 containerColor = MaterialTheme.colorScheme.primaryContainer,
                 contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
               )
-              Spacer(Modifier.height(4.dp))
-              LinearProgressIndicator(
-                progress = { remote.progress },
-                modifier = Modifier
-                  .fillMaxWidth()
-                  .padding(end = 12.dp)
-                  .clip(MaterialTheme.shapes.small)
-                  .height(4.dp),
-                color = MaterialTheme.colorScheme.primary,
-                trackColor = MaterialTheme.colorScheme.surfaceVariant,
-              )
             }
             is RemoteBookState.Downloaded -> {
               Spacer(Modifier.height(4.dp))
@@ -206,36 +193,30 @@ internal fun ListBookRow(
                 containerColor = MaterialTheme.colorScheme.secondaryContainer,
                 contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
               )
-              if (book.progress > 0.05f) {
-                Spacer(Modifier.height(4.dp))
-                LinearProgressIndicator(
-                  progress = { book.progress },
-                  modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(end = 12.dp)
-                    .clip(MaterialTheme.shapes.small)
-                    .height(4.dp),
-                  color = MaterialTheme.colorScheme.primary,
-                  trackColor = MaterialTheme.colorScheme.surfaceVariant,
-                )
-              }
             }
-            null -> {
-              if (book.progress > 0.05f) {
-                LinearProgressIndicator(
-                  progress = { book.progress },
-                  modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(end = 12.dp)
-                    .clip(MaterialTheme.shapes.small)
-                    .height(4.dp),
-                  color = MaterialTheme.colorScheme.primary,
-                  trackColor = MaterialTheme.colorScheme.surfaceVariant,
-                )
-              }
-            }
+            null -> {}
           }
         }
+      }
+
+      val (showProgressBar, progress) = when (val remote = book.remoteState) {
+        is RemoteBookState.Downloading -> true to remote.progress
+        is RemoteBookState.Downloaded -> (book.progress > 0.05f) to book.progress
+        is RemoteBookState.NotDownloaded -> false to 0f
+        null -> (book.progress > 0.05f) to book.progress
+      }
+      if (showProgressBar) {
+        Spacer(Modifier.size(0.dp))
+        LinearProgressIndicator(
+          progress = { progress },
+          modifier = Modifier
+            .fillMaxWidth()
+            .clip(MaterialTheme.shapes.small)
+            .height(4.dp),
+          color = MaterialTheme.colorScheme.primary,
+          trackColor = MaterialTheme.colorScheme.surfaceVariant,
+        )
+      }
     }
   }
 }

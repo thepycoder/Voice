@@ -22,3 +22,6 @@
 - [x] The search bar is broken
 - [x] Downloading the whole brain child does not introduce chapters and does not even start playing. Also, downloading it with the screen locked just removed the progress bar and then bam, suddenly it's downloaded
 - [ ] We'll need to sort on date purchased. This is not easy to find order into.
+- [ ] Update statistics to be bar chart for months and add week nrs and weekdays as y and x axis for the activity chart
+- [x] Progress bar at bottom of remote book card is not quite the same as local file
+- [x] Square aspect ratio for grid view!

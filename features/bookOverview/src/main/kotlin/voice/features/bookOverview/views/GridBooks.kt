@@ -120,12 +120,12 @@ internal fun GridBook(
       ),
   ) {
     Column(
-      modifier = Modifier.padding(12.dp),
+      modifier = Modifier.padding(start = 12.dp, end = 12.dp, top = 12.dp),
     ) {
       Box(
         modifier = Modifier
           .fillMaxWidth()
-          .aspectRatio(4f / 3f)
+          .aspectRatio(4f / 4f)
           .clip(MaterialTheme.shapes.large)
           .background(MaterialTheme.colorScheme.surfaceVariant),
         contentAlignment = Alignment.Center,
@@ -189,19 +189,12 @@ internal fun GridBook(
           }
         }
         is RemoteBookState.Downloading -> {
-          Column {
-            RemoteBadge(
-              icon = Icons.Outlined.CloudDownload,
-              text = "${(remote.progress * 100).toInt()}%",
-              containerColor = MaterialTheme.colorScheme.primaryContainer,
-              contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-            )
-            Spacer(Modifier.height(4.dp))
-            LinearProgressIndicator(
-              progress = { remote.progress },
-              modifier = Modifier.fillMaxWidth(),
-            )
-          }
+          RemoteBadge(
+            icon = Icons.Outlined.CloudDownload,
+            text = "${(remote.progress * 100).toInt()}%",
+            containerColor = MaterialTheme.colorScheme.primaryContainer,
+            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+          )
         }
         is RemoteBookState.Downloaded -> {
           RemoteBadge(
@@ -210,22 +203,17 @@ internal fun GridBook(
             containerColor = MaterialTheme.colorScheme.secondaryContainer,
             contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
           )
-          if (book.progress > 0.05f) {
-            Spacer(Modifier.height(4.dp))
-            LinearProgressIndicator(
-              progress = { book.progress },
-              modifier = Modifier.fillMaxWidth(),
-            )
-          }
         }
-        null -> {
-          if (book.progress > 0.05) {
-            LinearProgressIndicator(
-              progress = { book.progress },
-              modifier = Modifier.fillMaxWidth(),
-            )
-          }
-        }
+        null -> {}
+      }
+      val (showProgressBar, progress) = when (val remote = book.remoteState) {
+        is RemoteBookState.Downloading -> true to remote.progress
+        is RemoteBookState.Downloaded -> (book.progress > 0.05f) to book.progress
+        is RemoteBookState.NotDownloaded -> false to 0f
+        null -> (book.progress > 0.05f) to book.progress
+      }
+      if (showProgressBar) {
+        LinearProgressIndicator(progress = { progress })
       }
     }
   }
