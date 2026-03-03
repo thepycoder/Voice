@@ -94,9 +94,13 @@ fun BookOverviewScreen(modifier: Modifier = Modifier) {
   LaunchedEffect(Unit) {
     bookOverviewViewModel.attach()
   }
+  var searchActive by remember { mutableStateOf(false) }
+  var searchQuery by remember { mutableStateOf("") }
   val viewState = bookOverviewViewModel.state(
     unknownAuthor = stringResource(StringsR.string.unknown_author),
     unknownDuration = stringResource(StringsR.string.unknown_duration),
+    searchActive = searchActive,
+    searchQuery = searchQuery,
   )
 
   val scope = rememberCoroutineScope()
@@ -142,9 +146,17 @@ fun BookOverviewScreen(modifier: Modifier = Modifier) {
     },
     onBookFolderClick = bookOverviewViewModel::onBookFolderClick,
     onPlayButtonClick = bookOverviewViewModel::playPause,
-    onSearchActiveChange = bookOverviewViewModel::onSearchActiveChange,
-    onSearchQueryChange = bookOverviewViewModel::onSearchQueryChange,
-    onSearchBookClick = bookOverviewViewModel::onSearchBookClick,
+    onSearchActiveChange = { active ->
+      if (active) {
+        searchQuery = ""
+      }
+      searchActive = active
+    },
+    onSearchQueryChange = { searchQuery = it },
+    onSearchBookClick = { id ->
+      searchActive = false
+      bookOverviewViewModel.onSearchBookClick(id, searchQuery)
+    },
     onPermissionBugCardClick = bookOverviewViewModel::onPermissionBugCardClick,
     onSyncClick = bookOverviewViewModel::onSyncClick,
     onRefresh = bookOverviewViewModel::onRefresh,

@@ -150,7 +150,7 @@ class BookOverviewViewModelTest {
     every { remoteCatalogRepo.flow() } returns flowOf(listOf(remoteBook))
 
     backgroundScope.launchMolecule(RecompositionMode.Immediate) {
-      viewModel.state(unknownAuthor = "Unknown author", unknownDuration = "Unknown duration")
+      viewModel.state(unknownAuthor = "Unknown author", unknownDuration = "Unknown duration", searchActive = false, searchQuery = "")
     }.test {
       var state = awaitItem()
       while (state.books.isEmpty() || state.books.values.flatten().isEmpty()) {
@@ -177,7 +177,7 @@ class BookOverviewViewModelTest {
     every { remoteCatalogRepo.flow() } returns flowOf(listOf(remoteBook))
 
     backgroundScope.launchMolecule(RecompositionMode.Immediate) {
-      viewModel.state(unknownAuthor = "Unknown author", unknownDuration = "Unknown duration")
+      viewModel.state(unknownAuthor = "Unknown author", unknownDuration = "Unknown duration", searchActive = false, searchQuery = "")
     }.test {
       var state = awaitItem()
       while (state.books.isEmpty() || state.books.values.flatten().isEmpty()) {
@@ -212,7 +212,7 @@ class BookOverviewViewModelTest {
     every { contentRepo.flow() } returns flowOf(listOf(localBook.content))
 
     backgroundScope.launchMolecule(RecompositionMode.Immediate) {
-      viewModel.state(unknownAuthor = "Unknown author", unknownDuration = "Unknown duration")
+      viewModel.state(unknownAuthor = "Unknown author", unknownDuration = "Unknown duration", searchActive = false, searchQuery = "")
     }.test {
       var state = awaitItem()
       while (state.books.isEmpty() || state.books.values.flatten().isEmpty()) {
@@ -256,7 +256,7 @@ class BookOverviewViewModelTest {
     every { contentRepo.flow() } returns flowOf(listOf(localBook.content))
 
     backgroundScope.launchMolecule(RecompositionMode.Immediate) {
-      viewModel.state(unknownAuthor = "Unknown author", unknownDuration = "Unknown duration")
+      viewModel.state(unknownAuthor = "Unknown author", unknownDuration = "Unknown duration", searchActive = false, searchQuery = "")
     }.test {
       var state = awaitItem()
       while (state.books.isEmpty() || state.books.values.flatten().isEmpty()) {
@@ -290,7 +290,7 @@ class BookOverviewViewModelTest {
     every { remoteCatalogRepo.flow() } returns flowOf(listOf(remoteBook))
 
     backgroundScope.launchMolecule(RecompositionMode.Immediate) {
-      viewModel.state(unknownAuthor = "Unknown author", unknownDuration = "Unknown duration")
+      viewModel.state(unknownAuthor = "Unknown author", unknownDuration = "Unknown duration", searchActive = false, searchQuery = "")
     }.test {
       _downloadState.value = DownloadState.Downloading(remoteId, 0.5f)
 
@@ -310,7 +310,7 @@ class BookOverviewViewModelTest {
     every { remoteCatalogRepo.flow() } returns flowOf(emptyList())
 
     backgroundScope.launchMolecule(RecompositionMode.Immediate) {
-      viewModel.state(unknownAuthor = "Unknown author", unknownDuration = "Unknown duration")
+      viewModel.state(unknownAuthor = "Unknown author", unknownDuration = "Unknown duration", searchActive = false, searchQuery = "")
     }.test {
       skipItems(1)
       awaitItem().syncState shouldBe SyncState.Idle

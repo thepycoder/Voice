@@ -79,8 +79,6 @@ class BookOverviewViewModel(
 ) {
 
   private val scope = MainScope()
-  private var searchActive by mutableStateOf(false)
-  private var query by mutableStateOf("")
   private var isRefreshing by mutableStateOf(false)
 
   fun attach() {
@@ -110,6 +108,8 @@ class BookOverviewViewModel(
   internal fun state(
     unknownAuthor: String,
     unknownDuration: String,
+    searchActive: Boolean,
+    searchQuery: String,
   ): BookOverviewViewState {
     val playState = remember { playStateManager.flow }
       .collectAsState(initial = PlayStateManager.PlayState.Paused).value
@@ -165,7 +165,12 @@ class BookOverviewViewModel(
       }
     }
 
-    val bookSearchViewState = bookSearchViewState(layoutMode)
+    val bookSearchViewState = bookSearchViewState(
+      layoutMode = layoutMode,
+      remoteBookViewStates = remoteBookViewStates,
+      searchActive = searchActive,
+      searchQuery = searchQuery,
+    )
 
     return BookOverviewViewState(
       layoutMode = layoutMode,
@@ -198,7 +203,7 @@ class BookOverviewViewModel(
       } else {
         noBooks
       },
-      showSearchIcon = booksList.isNotEmpty(),
+      showSearchIcon = booksList.isNotEmpty() || remoteBookViewStates.isNotEmpty(),
       isLoading = scannerActive,
       searchActive = searchActive,
       searchViewState = bookSearchViewState,
@@ -211,7 +216,12 @@ class BookOverviewViewModel(
   }
 
   @Composable
-  private fun bookSearchViewState(layoutMode: BookOverviewLayoutMode): BookSearchViewState {
+  private fun bookSearchViewState(
+    layoutMode: BookOverviewLayoutMode,
+    remoteBookViewStates: List<BookOverviewItemViewState>,
+    searchActive: Boolean,
+    searchQuery: String,
+  ): BookSearchViewState {
     return if (searchActive) {
       val recentBookSearch = remember {
         recentBookSearchDao.recentBookSearches()
@@ -219,20 +229,23 @@ class BookOverviewViewModel(
       var searchBooks by remember {
         mutableStateOf(emptyList<BookOverviewItemViewState>())
       }
-      LaunchedEffect(query) {
-        searchBooks = search.search(query).map { it.toItemViewState() }
+      LaunchedEffect(searchQuery) {
+        val localBooks = search.search(searchQuery).map { it.toItemViewState() }
+        val remoteMatches = remoteBookViewStates.filter { matchesSearch(it, searchQuery) }
+        searchBooks = localBooks + remoteMatches
       }
       val suggestedAuthors: List<String> by produceState(initialValue = emptyList()) {
-        value = contentRepo.all()
-          .filter { it.isActive }
-          .mapNotNull { it.author }
-          .toSet()
-          .sortedNaturally()
+        value = (
+          contentRepo.all()
+            .filter { it.isActive }
+            .mapNotNull { it.author } +
+          remoteBookViewStates.mapNotNull { it.author }
+        ).toSet().sortedNaturally()
       }
 
-      val bookSearchViewState = if (query.isNotBlank()) {
+      val bookSearchViewState = if (searchQuery.isNotBlank()) {
         BookSearchViewState.SearchResults(
-          query = query,
+          query = searchQuery,
           books = searchBooks,
           layoutMode = layoutMode,
         )
@@ -240,7 +253,7 @@ class BookOverviewViewModel(
         BookSearchViewState.EmptySearch(
           recentQueries = recentBookSearch,
           suggestedAuthors = suggestedAuthors,
-          query = query,
+          query = searchQuery,
         )
       }
       bookSearchViewState
@@ -248,7 +261,7 @@ class BookOverviewViewModel(
       BookSearchViewState.EmptySearch(
         recentQueries = emptyList(),
         suggestedAuthors = emptyList(),
-        query = query,
+        query = searchQuery,
       )
     }
   }
@@ -277,26 +290,14 @@ class BookOverviewViewModel(
     navigator.goTo(Destination.FolderPicker)
   }
 
-  fun onSearchActiveChange(active: Boolean) {
-    if (active && !searchActive) {
-      query = ""
-    }
-    this.searchActive = active
-  }
-
-  fun onSearchQueryChange(query: String) {
-    this.query = query
-  }
-
-  fun onSearchBookClick(id: BookId) {
-    val query = query.trim()
-    if (query.isNotBlank()) {
+  fun onSearchBookClick(id: BookId, query: String) {
+    val trimmedQuery = query.trim()
+    if (trimmedQuery.isNotBlank()) {
       scope.launch {
-        recentBookSearchDao.add(query)
+        recentBookSearchDao.add(trimmedQuery)
       }
     }
-    searchActive = false
-    navigator.goTo(Destination.Playback(id))
+    onBookClick(id)
   }
 
   fun playPause() {
@@ -346,6 +347,17 @@ class BookOverviewViewModel(
     val coversDir = File(application.filesDir, RemotePaths.COVERS_DIR)
     val coverFile = File(coversDir, "${remoteBook.id}.jpg")
     return if (coverFile.exists()) coverFile else null
+  }
+
+  private fun matchesSearch(book: BookOverviewItemViewState, query: String): Boolean {
+    val normalizedQuery = query
+      .trim()
+      .replace("[^\\p{L}0-9\\s]".toRegex(), " ")
+      .split("\\s+")
+      .filter { it.isNotEmpty() }
+    if (normalizedQuery.isEmpty()) return false
+    val searchable = "${book.name} ${book.author ?: ""}".lowercase()
+    return normalizedQuery.all { word -> searchable.contains(word.lowercase()) }
   }
 
   private fun getEffectiveRemoteId(content: BookContent, downloadsPath: String): String? {

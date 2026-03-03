@@ -15,6 +15,7 @@ dependencies {
   implementation(projects.core.remote)
   implementation(projects.core.scanner)
   implementation(projects.core.featureflag)
+  implementation(projects.core.logging.api)
 
   implementation(libs.lifecycle)
   api(libs.immutable)
