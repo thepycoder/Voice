@@ -283,7 +283,10 @@ class BookOverviewViewModel(
       }
       return
     }
-    navigator.goTo(Destination.Playback(id))
+    scope.launch {
+      currentBookStoreDataStore.updateData { id }
+      navigator.goTo(Destination.Playback(id))
+    }
   }
 
   fun onBookFolderClick() {
