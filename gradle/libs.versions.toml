@@ -6,9 +6,9 @@ sdk-robolectric = "35"
 
 coroutines = "1.10.2"
 room = "2.8.4"
-kotlin = "2.3.10"
+kotlin = "2.3.20"
 media3 = "1.9.2"
-agp = "9.0.1"
+agp = "9.0.0"
 ktlint-core = "1.8.0"
 ktlint-gradlePlugin = "0.13.0"
 retrofit = "3.0.0"
@@ -87,10 +87,6 @@ compose-ui-tooling = { module = "androidx.compose.ui:ui-tooling" }
 compose-ui-test = { module = "androidx.compose.ui:ui-test" }
 compose-ui-testJunit = { module = "androidx.compose.ui:ui-test-junit4" }
 compose-ui-testManifest = { module = "androidx.compose.ui:ui-test-manifest" }
-compose-material-icons-core = { module = "androidx.compose.material:material-icons-core" }
-compose-material-icons-extended = { module = "androidx.compose.material:material-icons-extended" }
-compose-animation-graphics = { module = "androidx.compose.animation:animation-graphics" }
-compose-animation-animation = { module = "androidx.compose.animation:animation" }
 compose-material3 = { module = "androidx.compose.material3:material3" }
 compose-activity = "androidx.activity:activity-compose:1.12.4"
 navigation3-ui = { module = "androidx.navigation3:navigation3-ui", version.ref = "navigation3" }
@@ -107,11 +103,6 @@ compose = [
   "compose-ui-ui",
   "compose-ui-tooling-preview",
   "compose-foundation",
-  "compose-material-icons-core",
-  "compose-material-icons-extended",
-  "compose-animation-graphics",
-  "compose-animation-animation",
-  "androidxCore",
   "compose-material3",
   "compose-activity",
   "coil",
